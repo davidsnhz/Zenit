@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Zenit</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#121212">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --bg: #121212;
+    --surface: #1E1E1E;
+    --border: #333333;
+    --text-pri: #F0F0F0;
+    --text-sec: #9E9E9E;
+    --pri: #FF5B00;
+    --sec: #FFA900;
+    --err: #FF0000;
+    --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  
+  body { background-color: var(--bg); color: var(--text-pri); font-family: var(--font); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* --- PANTALLAS --- */
+  .screen { flex: 1; overflow-y: auto; padding: max(20px, env(safe-area-inset-top)) 20px 100px 20px; display: none; animation: fadeIn 0.3s ease; }
+  .screen.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* --- GLOBALES --- */
+  .header-title { font-size: 32px; font-weight: 900; color: var(--text-pri); letter-spacing: -1px; margin-bottom: 24px; }
+  .card { background-color: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 20px; }
+  .card-sub { font-size: 12px; font-weight: 800; color: var(--text-sec); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+  
+  .btn-primary { display: block; width: 100%; padding: 16px; background-color: var(--pri); color: #fff; border: none; border-radius: 12px; font-size: 16px; font-weight: 800; font-family: var(--font); text-align: center; cursor: pointer; transition: transform 0.1s; }
+  .btn-primary:active { transform: scale(0.97); }
+  .btn-secondary { background-color: transparent; border: 1px solid var(--pri); color: var(--pri); margin-top: 10px; }
+
+  /* --- DASHBOARD --- */
+  .ai-msg { font-style: italic; font-size: 15px; color: var(--text-pri); line-height: 1.4; display: flex; gap: 12px; align-items: flex-start; }
+  .ai-msg span { color: var(--sec); font-size: 20px; }
+  
+  /* Calendario Semanal */
+  .week-cal { display: flex; justify-content: space-between; margin-bottom: 20px; }
+  .day-col { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .day-name { font-size: 12px; color: var(--text-sec); font-weight: 600; }
+  .day-num { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-weight: 800; font-size: 15px; border: 1px solid transparent; }
+  .day-col.today .day-num { border-color: var(--border); }
+  .day-col.logged .day-num { background-color: var(--pri); color: white; }
+
+  .task-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .task-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .task-check { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--text-sec); display: flex; align-items: center; justify-content: center; font-size: 14px; color: transparent; cursor: pointer; }
+  .task-row.done .task-check { background-color: var(--border); border-color: var(--border); color: var(--text-sec); }
+  .task-row.done .task-text { color: var(--text-sec); text-decoration: line-through; }
+
+  /* --- CREADOR DE RUTINAS (Punto 5) --- */
+  .ex-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+  .ex-name-input { flex: 1; background: transparent; border: none; color: var(--sec); font-size: 20px; font-weight: 800; font-family: var(--font); outline: none; }
+  .ex-name-input::placeholder { color: var(--text-sec); font-weight: 600; }
+  .btn-icon { background: none; border: none; color: var(--err); font-size: 18px; cursor: pointer; padding: 4px; }
+  
+  .set-grid { display: grid; grid-template-columns: 40px 1fr 1fr 1fr 30px; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .set-header-grid { display: grid; grid-template-columns: 40px 1fr 1fr 1fr 30px; gap: 8px; margin-bottom: 8px; font-size: 11px; color: var(--text-sec); font-weight: 800; text-align: center; }
+  .set-label { font-size: 14px; color: var(--text-sec); font-weight: 800; text-align: center; }
+  .inline-input { background-color: var(--bg); border: 1px solid var(--border); color: var(--text-pri); font-family: var(--font); font-size: 15px; font-weight: 800; padding: 10px 4px; border-radius: 8px; width: 100%; text-align: center; }
+  .inline-input:focus { border-color: var(--pri); outline: none; }
+  
+  .stats-row { display: flex; justify-content: space-between; font-size: 13px; color: var(--text-sec); margin-top: 16px; padding-top: 12px; border-top: 1px dashed var(--border); }
+  .stats-val { color: var(--text-pri); font-weight: 800; }
+
+  /* --- CALENDARIO FULL --- */
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; text-align: center; }
+  .cal-header { font-size: 12px; color: var(--text-sec); font-weight: 800; margin-bottom: 8px; }
+  .cal-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; border-radius: 8px; border: 1px solid var(--border); cursor: pointer; }
+  .cal-day.logged { background-color: var(--pri); color: white; border-color: var(--pri); }
+  .cal-day.empty { border: none; cursor: default; }
+
+  /* --- NAVEGACIÓN INFERIOR --- */
+  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: max(80px, calc(60px + env(safe-area-inset-bottom))); background-color: var(--surface); border-top: 1px solid var(--border); display: flex; justify-content: space-around; align-items: flex-start; padding-top: 12px; z-index: 1000; }
+  .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text-sec); background: none; border: none; font-family: var(--font); font-size: 11px; font-weight: 600; cursor: pointer; }
+  .nav-item.active { color: var(--sec); }
+  .nav-icon { font-size: 24px; font-weight: bold; }
+  .icon-z { width: 28px; height: 28px; background-color: currentColor; border-radius: 6px; position: relative; clip-path: polygon(0 0, 100% 0, 100% 25%, 25% 100%, 100% 100%, 100% 75%, 0 75%, 0 100%, 75% 0, 0 0); }
+</style>
+</head>
+<body>
+
+  <div id="view-dashboard" class="screen active">
+    <div class="header-title">ZENIT</div>
+    
+    <div class="card ai-msg">
+      <span>✦</span>
+      <p id="motivational-quote">Cargando...</p>
+    </div>
+
+    <div class="card">
+      <div class="card-sub">ESTA SEMANA</div>
+      <div class="week-cal" id="week-calendar-container">
+        </div>
+      <button class="btn-primary" onclick="switchTab('entreno', document.querySelectorAll('.nav-item')[1])">EMPEZAR ENTRENAMIENTO</button>
+    </div>
+
+    <div class="card">
+      <div class="card-sub">PRIORIDADES DEL DÍA</div>
+      <div class="task-row done" onclick="this.classList.toggle('done')">
+        <div class="task-check">✓</div><div class="task-text">Preparar comidas</div>
+      </div>
+      <div class="task-row" onclick="this.classList.toggle('done')">
+        <div class="task-check">✓</div><div class="task-text">Leer 15 mins</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="view-entreno" class="screen">
+    <div class="header-title">RUTINA</div>
+    
+    <div id="routine-container">
+      </div>
+
+    <button class="btn-primary btn-secondary" onclick="addExercise()">+ NUEVO EJERCICIO</button>
+    <button class="btn-primary" style="margin-top: 20px;" onclick="saveRoutine()">GUARDAR RUTINA</button>
+  </div>
+
+  <div id="view-metas" class="screen">
+    <div class="header-title">METAS</div>
+    <div class="card">
+      <div class="card-sub">MIS PROPÓSITOS</div>
+      <p style="font-size: 14px; color: var(--text-sec);">Visualiza aquí tus metas a largo plazo. (Próximamente conectadas al guardado local).</p>
+    </div>
+  </div>
+
+  <div id="view-calendario" class="screen">
+    <div class="header-title">CONSTANCIA</div>
+    <div class="card">
+      <div class="card-sub" id="month-name">MAYO 2026</div>
+      <div class="cal-grid" id="full-calendar-container">
+        </div>
+      <p style="font-size: 12px; color: var(--text-sec); margin-top: 16px; text-align: center;">Toca un día para marcarlo manualmente.</p>
+    </div>
+  </div>
+
+  <nav class="bottom-nav">
+    <button class="nav-item active" onclick="switchTab('dashboard', this)">
+      <div class="nav-icon" style="font-size: 20px; font-weight: 900;">Z</div>
+      Dashboard
+    </button>
+    <button class="nav-item" onclick="switchTab('entreno', this)">
+      <div class="nav-icon">🏋️</div>
+      Entreno
+    </button>
+    <button class="nav-item" onclick="switchTab('metas', this)">
+      <div class="nav-icon">◎</div>
+      Metas
+    </button>
+    <button class="nav-item" onclick="switchTab('calendario', this)">
+      <div class="nav-icon">📅</div>
+      Calendario
+    </button>
+  </nav>
+
+<script src="app.js"></script>
+</body>
+</html>
