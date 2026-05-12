@@ -1,7 +1,7 @@
 {
   "name": "Zenit Dashboard",
   "short_name": "Zenit",
-  "description": "Tu ecosistema personal de entrenamiento, constancia y progreso.",
+  "description": "Tu ecosistema personal de entrenamiento, metas de vida y progreso continuo.",
   "start_url": "./index.html",
   "display": "standalone",
   "orientation": "portrait",
@@ -22,5 +22,21 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["health", "productivity", "fitness"]
+  "categories": ["health", "productivity", "fitness", "lifestyle"],
+  "shortcuts": [
+    {
+      "name": "Rutina Semanal",
+      "short_name": "Entrenar",
+      "description": "Abre directamente tu plantilla semanal",
+      "url": "/index.html?tab=entreno",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Ver Metas",
+      "short_name": "Metas",
+      "description": "Revisa tus propósitos personales",
+      "url": "/index.html?tab=metas",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    }
+  ]
 }
