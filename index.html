@@ -21,6 +21,30 @@
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body { background-color: var(--bg); color: var(--text-pri); font-family: var(--font); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
+  /* SPLASH SCREEN */
+  #splash-screen { position: fixed; inset: 0; background: var(--bg); z-index: 10000; display: flex; align-items: center; justify-content: center; transition: opacity 0.5s ease; }
+  .logo-pulse { animation: pulse 1.5s infinite ease-in-out; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .logo-pulse img { width: 160px; height: auto; object-fit: contain; }
+  @keyframes pulse { 0% { transform: scale(0.95); opacity: 0.8; } 50% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(0.95); opacity: 0.8; } }
+
+  /* SIDE MENU */
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 8999; display: none; opacity: 0; transition: opacity 0.3s; backdrop-filter: blur(2px); }
+  .overlay.open { display: block; opacity: 1; }
+  .side-menu { position: fixed; top:0; left:-320px; width:280px; height:100%; background:var(--surface); z-index:9000; transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1); border-right: 1px solid var(--border); display: flex; flex-direction: column;}
+  .side-menu.open { left: 0; }
+  .menu-header { padding: max(40px, env(safe-area-inset-top)) 20px 20px 20px; border-bottom: 1px solid var(--border); }
+  .menu-level-badge { display: inline-block; background: var(--sec); color: var(--bg); padding: 4px 10px; border-radius: 12px; font-weight: 900; font-size: 12px; margin-top: 8px;}
+  .menu-list { list-style: none; padding: 20px; flex: 1;}
+  .menu-list li { margin-bottom: 24px; }
+  .menu-list button { background: none; border: none; color: var(--text-pri); font-family: var(--font); font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 12px; cursor: pointer; width: 100%; text-align: left;}
+
+  /* MODALS */
+  .modal { position: fixed; top:50%; left:50%; transform: translate(-50%, -50%) scale(0.9); background: var(--surface); padding: 24px; border-radius: 20px; z-index: 9500; width: 90%; max-width: 400px; display: none; opacity:0; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid var(--border); text-align: center;}
+  .modal.open { display: block; opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  .emoji-row { display: flex; justify-content: space-around; margin: 24px 0; }
+  .emoji-btn { font-size: 32px; background: none; border: none; cursor: pointer; transition: transform 0.2s; }
+  .emoji-btn:active { transform: scale(1.3); }
+
   /* UI Modules */
   .screen { flex: 1; overflow-y: auto; padding: max(20px, env(safe-area-inset-top)) 20px 140px 20px; display: none; }
   .screen.active { display: block; }
@@ -33,7 +57,9 @@
   }
 
   /* Globals */
-  .header-title { font-size: 32px; font-weight: 900; letter-spacing: -1px; margin-bottom: 24px; color: var(--text-pri); }
+  .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+  .header-title { font-size: 32px; font-weight: 900; letter-spacing: -1px; color: var(--text-pri); display: flex; align-items: center; gap: 12px;}
+  .avatar-btn { width: 40px; height: 40px; border-radius: 50%; background: var(--border); display: flex; align-items: center; justify-content: center; font-size: 18px; cursor: pointer; border: none; color: var(--text-pri);}
   
   .card { background-color: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 20px; }
   .card-sub { font-size: 12px; font-weight: 800; color: var(--text-sec); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;}
@@ -43,6 +69,10 @@
   .btn-secondary { background-color: transparent; border: 1px solid var(--pri); color: var(--pri); margin-top: 10px; }
   .btn-rest { background-color: transparent; border: 1px solid var(--border); color: var(--text-pri); }
   .btn-icon { background: none; border: none; color: var(--text-sec); font-size: 18px; cursor: pointer; padding: 4px; display: inline-flex; align-items: center; justify-content: center;}
+
+  .toggle-group { display: flex; background: var(--bg); border-radius: 8px; border: 1px solid var(--border); overflow: hidden;}
+  .toggle-btn { flex: 1; padding: 6px 12px; border: none; background: none; color: var(--text-sec); font-size: 12px; font-weight: 800; cursor: pointer; }
+  .toggle-btn.active { background: var(--surface); color: var(--pri); }
 
   /* Inputs */
   input { font-family: var(--font); color: var(--text-pri); outline: none; }
@@ -112,6 +142,72 @@
 </head>
 <body>
   
+  <div id="splash-screen">
+    <div class="logo-pulse">
+      <img src="./logo.png" alt="Zenit Logo" onerror="this.style.display='none';">
+      <span style="font-size: 56px; font-weight: 900; letter-spacing: -2px; color:var(--text-pri); margin-top:10px;">ZENIT</span>
+    </div>
+  </div>
+
+  <div id="main-overlay" class="overlay" onclick="UIModule.closeAllModals()"></div>
+  
+  <div id="side-menu" class="side-menu">
+    <div class="menu-header">
+      <h3 style="font-size:24px; font-weight:900;">Mi Cuenta</h3>
+      <div class="menu-level-badge">Nivel Zenit: <span id="menu-level-display">1</span></div>
+      <div style="font-size:11px; color:var(--text-sec); margin-top:4px;">Experiencia: <span id="menu-xp-display">0</span>/100</div>
+    </div>
+    <ul class="menu-list">
+      <li><button onclick="UIModule.closeAllModals(); UIModule.openModal('modal-account')">👤 Conectar Cuenta</button></li>
+      <li><button onclick="UIModule.closeAllModals(); UIModule.showToast('👥 Próximamente: Comunidad Zenit')">👥 Amigos y Comunidad</button></li>
+      <li><button onclick="UIModule.closeAllModals(); UIModule.showToast('🔔 No tienes notificaciones nuevas')">🔔 Notificaciones</button></li>
+      <li><button onclick="UIModule.closeAllModals(); UIModule.showToast('⚙️ Próximamente: Ajustes generales')">⚙️ Ajustes de Aplicación</button></li>
+    </ul>
+  </div>
+
+  <div id="modal-account" class="modal">
+    <h3 style="font-size: 20px; font-weight: 900; margin-bottom: 16px;">Iniciar Sesión</h3>
+    <button class="btn-primary btn-secondary" style="margin-bottom:12px; display:flex; justify-content:center; align-items:center; gap:8px;" onclick="UIModule.showToast('Conectando con Apple...')"> Continuar con Apple</button>
+    <button class="btn-primary btn-secondary" style="margin-bottom:12px; display:flex; justify-content:center; align-items:center; gap:8px; color:var(--text-pri); border-color:var(--border);" onclick="UIModule.showToast('Conectando con Google...')">
+      <span style="font-size:18px; font-weight:900;">G</span> Continuar con Google
+    </button>
+    <div style="margin: 16px 0; color:var(--text-sec); font-size:12px;">o usa tu correo</div>
+    <input type="email" class="input-text" placeholder="Correo electrónico">
+    <input type="password" class="input-text" placeholder="Contraseña">
+    <button class="btn-primary" onclick="UIModule.closeAllModals(); UIModule.showToast('Sesión iniciada correctamente')">ENTRAR</button>
+  </div>
+
+  <div id="modal-energy" class="modal">
+    <h3 style="font-size: 20px; font-weight: 900; margin-bottom: 8px;">¡Rutina Completada!</h3>
+    <p style="color:var(--text-sec); font-size:14px;">¿Cómo te sientes de energía tras esta sesión?</p>
+    <div class="emoji-row">
+      <button class="emoji-btn btn-energy">😫</button>
+      <button class="emoji-btn btn-energy">🥱</button>
+      <button class="emoji-btn btn-energy">😐</button>
+      <button class="emoji-btn btn-energy">🙂</button>
+      <button class="emoji-btn btn-energy">🤩</button>
+    </div>
+    <p style="font-size: 11px; color: var(--text-sec);">Este chequeo mejora tu conexión cuerpo-mente.</p>
+  </div>
+
+  <div id="modal-ai" class="modal">
+    <h3 style="font-size: 20px; font-weight: 900; margin-bottom: 8px;">Importación Inteligente</h3>
+    <p style="color:var(--text-sec); font-size:14px; margin-bottom: 20px;">Sube una foto o PDF de tu rutina. La IA la leerá y generará tu entrenamiento automáticamente.</p>
+    
+    <div id="ai-upload-area" style="border: 2px dashed var(--border); border-radius: 12px; padding: 30px 10px; cursor:pointer;" onclick="document.getElementById('ai-file-input').click()">
+      <span style="font-size: 32px; display:block; margin-bottom:10px;">📄</span>
+      <span style="font-weight: 800; font-size: 14px; color: var(--pri);">Toca para subir documento o foto</span>
+    </div>
+    <input type="file" id="ai-file-input" accept="image/*,application/pdf" style="display:none" onchange="RoutineModule.simulateAIImport()">
+    
+    <div id="ai-loading-area" style="display:none; padding: 20px 0;">
+      <div style="width:100%; height:4px; background:var(--bg); border-radius:2px; overflow:hidden; margin-bottom:12px;">
+        <div style="height:100%; width:100%; background:var(--sec); animation: pulse 1s infinite;"></div>
+      </div>
+      <p style="font-weight: 800; font-size: 13px; color: var(--sec);">Procesando archivo con IA...</p>
+    </div>
+  </div>
+
   <datalist id="exercise-library">
     <option value="Press Banca"></option><option value="Sentadilla"></option>
     <option value="Peso Muerto"></option><option value="Dominadas"></option>
@@ -129,9 +225,13 @@
   </div>
 
   <div id="view-dashboard" class="screen">
-    <div class="greeting" id="dash-greeting">Cargando...</div>
-    
-    <div class="header-title">ZENIT</div>
+    <div class="header-top">
+      <div>
+        <div class="greeting" id="dash-greeting">Cargando...</div>
+        <div class="header-title" style="color:var(--pri);">ZENIT</div>
+      </div>
+      <button class="avatar-btn" onclick="UIModule.openMenu()">👤</button>
+    </div>
     
     <div class="card ai-msg">
       <span style="color: var(--sec);">✦</span>
@@ -148,13 +248,13 @@
       </div>
       <div class="week-cal" id="week-calendar-container"></div>
       <div id="streak-counter" class="streak-text"></div>
-      <button class="btn-primary nav-trigger" data-target="entreno">VER RUTINA SEMANAL</button>
+      <button class="btn-primary nav-trigger" data-target="entreno">VER RUTINA</button>
     </div>
 
     <div class="card">
-      <div class="card-sub">PRIORIDADES DEL DÍA</div>
+      <div class="card-sub">HÁBITOS Y PRIORIDADES</div>
       <div id="tasks-container-dash"></div>
-      <p id="dash-tasks-empty" style="font-size: 12px; color: var(--text-sec); margin-top: 8px;">Añade o edita tus prioridades en la pestaña Metas.</p>
+      <p id="dash-tasks-empty" style="font-size: 12px; color: var(--text-sec); margin-top: 8px;">Añade tus hábitos diarios en la pestaña Metas.</p>
     </div>
 
     <div class="card">
@@ -166,19 +266,27 @@
 
   <div id="view-entreno" class="screen">
     
-    <div id="routine-week-list-view">
-      <div style="display:flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px;">
-        <div class="header-title" style="margin-bottom:0;">RUTINA SEMANAL</div>
+    <div id="routine-list-view">
+      <div class="header-top">
+        <div class="header-title" style="margin-bottom:0;">RUTINA</div>
+        <div style="display:flex; gap:16px; align-items:center;">
+          <button class="btn-icon" onclick="UIModule.openModal('modal-ai')" style="font-size: 22px;">📄</button>
+          <div class="toggle-group" id="routine-view-toggle">
+            <button class="toggle-btn active" data-view="days">DÍAS</button>
+            <button class="toggle-btn" data-view="muscles">GRUPOS</button>
+          </div>
+        </div>
       </div>
-      <p style="color:var(--text-sec); font-size:14px; margin-bottom: 24px;">Selecciona un día para organizar y editar tu plantilla de ejercicios.</p>
-      <div id="routine-week-list"></div>
+      <p style="color:var(--text-sec); font-size:14px; margin-bottom: 24px;">Organiza tus sesiones y mantén el enfoque.</p>
+      
+      <div id="routine-list-container"></div>
     </div>
 
     <div id="routine-day-view" style="display: none;">
       <div style="display:flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px;">
         <div style="display:flex; align-items:center; gap:12px;">
           <button class="btn-icon" id="btn-back-week" style="color:var(--text-pri); font-size:24px;">←</button>
-          <span style="font-size: 24px; font-weight: 900; color:var(--sec);" id="routine-day-title">Día</span>
+          <span style="font-size: 24px; font-weight: 900; color:var(--sec);" id="routine-day-title">Día/Grupo</span>
         </div>
         <div style="color: var(--text-sec); font-weight: 800; font-size: 18px;" id="session-stopwatch">00:00</div>
       </div>
@@ -188,12 +296,14 @@
       <div id="routine-container"></div>
 
       <div id="empty-routine" class="empty-state">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor" style="margin-bottom: 12px;"><path d="M20.5 4V20H17V17H7V20H3.5V4H7V7H17V4H20.5ZM17 9H7V15H17V9Z"/></svg>
-        <h3 style="color: var(--text-pri); margin-bottom: 4px;">Descanso programado</h3>
-        <p>Añade ejercicios si quieres entrenar este día.</p>
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor" style="margin-bottom: 12px; color:var(--sec);"><path d="M20.5 4V20H17V17H7V20H3.5V4H7V7H17V4H20.5ZM17 9H7V15H17V9Z"/></svg>
+        <p id="empty-wisdom-quote" style="font-style:italic; margin-bottom:12px; font-size:14px;">"Una zona de confort es un lugar hermoso, pero nada crece allí."</p>
+        <h3 id="empty-routine-title" style="color: var(--text-pri); margin-bottom: 4px; font-size:16px;">Sesión en blanco</h3>
+        <p style="font-size:12px;">Añade ejercicios o importa un documento.</p>
       </div>
 
       <button id="btn-add-exercise" class="btn-primary btn-secondary">+ NUEVO EJERCICIO</button>
+      <button id="btn-delete-group" class="btn-primary" style="background:transparent; color:var(--err); border: 1px solid var(--err); margin-top: 16px; display:none;">ELIMINAR ESTE GRUPO</button>
     </div>
   </div>
 
@@ -206,21 +316,22 @@
   </div>
 
   <div id="view-metas" class="screen">
-    <div class="header-title">METAS</div>
+    <div class="header-title">METAS Y HÁBITOS</div>
     
-    <div class="card">
-      <div class="card-sub">EDITAR PRIORIDADES DEL DÍA (Max 5)</div>
+    <div class="card" style="margin-top: 24px;">
+      <div class="card-sub">HÁBITOS DIARIOS</div>
       <div id="tasks-container-edit"></div>
       <div style="display: flex; gap: 8px; margin-top: 12px;">
-        <input type="text" id="new-task-input" class="input-text" style="margin:0;" placeholder="Ej. Comprar verduras..." maxlength="40">
+        <input type="text" id="new-task-input" class="input-text" style="margin:0;" placeholder="Ej. Meditar 10 mins, Dormir 8h..." maxlength="40">
         <button id="btn-add-task" class="btn-primary" style="width: 50px;">+</button>
       </div>
+      <p style="font-size:11px; color:var(--text-sec); margin-top:12px;">Cumplir hábitos diarios aumenta tu Nivel Zenit (+10 XP).</p>
     </div>
 
     <div id="goals-container-edit"></div>
 
     <div class="card">
-      <div class="card-sub">AÑADIR NUEVA META PERSONAL</div>
+      <div class="card-sub">NUEVO PROPÓSITO A LARGO PLAZO</div>
       <input type="text" id="goal-title" class="input-text" placeholder="Ej. Sacarse el carnet de conducir..." maxlength="60">
       <input type="text" id="goal-deadline" class="input-text" placeholder="¿Para cuándo? (Ej. hasta junio de 2027)" maxlength="60">
       <button id="btn-add-goal" class="btn-primary" style="padding:12px; font-size:14px; margin-top:4px;">AÑADIR META</button>
@@ -230,7 +341,7 @@
   <div id="view-calendario" class="screen">
     <div class="header-title">CONSTANCIA</div>
     
-    <div class="card" style="display: flex; justify-content: space-between; text-align: center;">
+    <div class="card" style="margin-top: 24px; display: flex; justify-content: space-between; text-align: center;">
       <div><div class="card-sub" style="margin:0;">TOTAL DÍAS</div><div style="font-size:24px; font-weight:900;" id="stat-total">0</div></div>
       <div><div class="card-sub" style="margin:0;">MAX RACHA</div><div style="font-size:24px; font-weight:900; color: var(--sec);" id="stat-streak">0</div></div>
     </div>
@@ -261,7 +372,7 @@
     </button>
     <button class="nav-item nav-trigger" data-target="entreno" aria-label="Entrenamiento">
       <svg viewBox="0 0 24 24"><path d="M20.5 4V20H17V17H7V20H3.5V4H7V7H17V4H20.5ZM17 9H7V15H17V9Z"/></svg>
-      Entreno
+      Rutina
     </button>
     <button class="nav-item nav-trigger" data-target="metas" aria-label="Metas">
       <svg viewBox="0 0 24 24"><path d="M12 2C17.52 2 22 6.48 22 12C22 17.52 17.52 22 12 22C6.48 22 2 17.52 2 12C2 6.48 6.48 2 12 2ZM12 11C11.45 11 11 11.45 11 12C11 12.55 11.45 13 12 13C12.55 13 13 12.55 13 12C13 11.45 12.55 11 12 11ZM12 7C9.24 7 7 9.24 7 12C7 14.76 9.24 17 12 17C14.76 17 17 14.76 17 12C17 9.24 14.76 7 12 7ZM12 9C13.66 9 15 10.34 15 12C15 13.66 13.66 15 12 15C10.34 15 9 13.66 9 12C9 10.34 10.34 9 12 9Z"/></svg>

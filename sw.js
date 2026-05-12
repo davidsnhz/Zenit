@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════
    ZENIT — Service Worker
 ═══════════════════════════════════════════════════════ */
-const APP_VERSION = '5.0.0';
+const APP_VERSION = '8.0.0';
 const CACHE = `zenit-v${APP_VERSION}`;
 
 const PRECACHE = [
