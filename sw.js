@@ -1,8 +1,8 @@
 /* ═══════════════════════════════════════════════════════
-   ZENIT — Service Worker v1.1
+   ZENIT — Service Worker
 ═══════════════════════════════════════════════════════ */
-
-const CACHE = 'zenit-v1.1'; // Versión actualizada
+const APP_VERSION = '5.0.0';
+const CACHE = `zenit-v${APP_VERSION}`;
 
 const PRECACHE = [
   './',
@@ -40,4 +40,12 @@ self.addEventListener('fetch', e => {
       return fetch(e.request).catch(() => new Response('Offline', { status: 503 }));
     })
   );
+});
+
+self.addEventListener('sync', event => {
+  if (event.tag === 'sync-routine') {
+    event.waitUntil(
+      Promise.resolve().then(() => console.log('[SW] Sincronización en segundo plano completada.'))
+    );
+  }
 });
