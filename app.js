@@ -1,10 +1,31 @@
 /* ═══════════════════════════════════════════════════════════
-   ZENIT v8.0 — app.js (Holistic Gamified PWA)
+   ZENIT v12.0 — app.js (Firebase Cloud Version)
 ═══════════════════════════════════════════════════════════ */
 'use strict';
 
 (function() {
-  const APP_VERSION = '8.0.0';
+  const APP_VERSION = '12.0.0';
+  
+  // --- FIREBASE SETUP ---
+  const firebaseConfig = {
+    apiKey: "AIzaSyBQLYN-_G3t_d49XFkJlGlzXk_z0ql5Eb4",
+    authDomain: "zenit-76017.firebaseapp.com",
+    projectId: "zenit-76017",
+    storageBucket: "zenit-76017.firebasestorage.app",
+    messagingSenderId: "1094461261782",
+    appId: "1:1094461261782:web:e2ef0cf1a311cbeef94677"
+  };
+
+  if (typeof firebase !== 'undefined') {
+      firebase.initializeApp(firebaseConfig);
+  }
+
+  const auth = typeof firebase !== 'undefined' ? firebase.auth() : null;
+  const db = typeof firebase !== 'undefined' ? firebase.firestore() : null;
+
+  if (db) {
+      db.enablePersistence().catch(err => console.warn('Offline persistence issue', err));
+  }
   
   // --- STATE ---
   let appState = {
@@ -43,6 +64,13 @@
   function triggerHaptic(pattern) { if(navigator.vibrate) navigator.vibrate(pattern); }
   function getEl(id) { return document.getElementById(id); }
 
+  const SVG_ICONS = {
+    flame: `<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" style="vertical-align: middle; margin-right: 4px; margin-bottom: 2px;"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"></path></svg>`,
+    trash: `<svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path></svg>`,
+    copy: `<svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path></svg>`,
+    clock: `<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" style="vertical-align: middle; margin-right: 4px; margin-bottom: 2px;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`
+  };
+
   const wisdomQuotes = [
     "\"Una zona de confort es un lugar hermoso, pero nada crece allí.\"",
     "\"La disciplina te llevará a donde la motivación no alcanza.\"",
@@ -65,6 +93,11 @@
     },
     save() {
       localStorage.setItem('zenitState', JSON.stringify(appState));
+      
+      if (auth && auth.currentUser && db) {
+         db.collection('users').doc(auth.currentUser.uid).set(appState)
+           .catch(e => console.warn('Error syncing to cloud', e));
+      }
     },
     migrate(oldState) {
       appState = { ...appState, ...oldState, schemaVersion: 6 };
@@ -79,7 +112,89 @@
          appState.weeklyRoutine.forEach(r => { r.label = r.day; delete r.day; });
       }
       this.save();
+    },
+    syncFromCloud(uid) {
+        if (!db) return;
+        db.collection('users').doc(uid).get().then(doc => {
+            if (doc.exists) {
+                const cloudState = doc.data();
+                if (cloudState.schemaVersion < 6) this.migrate(cloudState);
+                else appState = cloudState;
+                localStorage.setItem('zenitState', JSON.stringify(appState));
+                
+                const activeBtn = document.querySelector('.nav-item.active');
+                if(activeBtn) UIModule.switchTab(activeBtn.dataset.target);
+                UIModule.showToast('☁️ Datos sincronizados de la nube');
+            } else {
+                this.save();
+            }
+        }).catch(err => console.warn("Sync err", err));
     }
+  };
+
+  const AuthModule = {
+      loginGoogle() {
+          if(!auth) return UIModule.showToast("Error de conexión a Firebase");
+          const provider = new firebase.auth.GoogleAuthProvider();
+          auth.signInWithPopup(provider).then(() => {
+              UIModule.closeAllModals();
+              UIModule.showToast('Sesión iniciada con Google');
+          }).catch(err => UIModule.showToast('Error: ' + err.message));
+      },
+      loginEmail() {
+          if(!auth) return UIModule.showToast("Error de conexión a Firebase");
+          const email = getEl('email-input').value.trim();
+          const pass = getEl('password-input').value;
+          if(!email || pass.length < 6) return UIModule.showToast('Correo inválido o clave corta (mín 6).');
+
+          auth.signInWithEmailAndPassword(email, pass)
+            .then(() => {
+               UIModule.closeAllModals();
+               UIModule.showToast('Sesión iniciada correctamente');
+            })
+            .catch(err => {
+               if(err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+                  auth.createUserWithEmailAndPassword(email, pass)
+                     .then(() => {
+                        UIModule.closeAllModals();
+                        UIModule.showToast('Cuenta creada con éxito');
+                     })
+                     .catch(e => UIModule.showToast('Error: ' + e.message));
+               } else {
+                  UIModule.showToast('Error: ' + err.message);
+               }
+            });
+      },
+      logout() {
+          if(auth) {
+              auth.signOut().then(() => {
+                 UIModule.closeAllModals();
+                 UIModule.showToast("Sesión cerrada");
+              });
+          }
+      },
+      initListener() {
+          if(!auth) return;
+          auth.onAuthStateChanged(user => {
+              const authBtn = getEl('menu-auth-btn');
+              if(!authBtn) return;
+
+              if (user) {
+                  authBtn.innerHTML = `
+                  <button onclick="AuthModule.logout()">
+                    <svg viewBox="0 0 24 24" width="20" height="20" stroke="var(--err)" stroke-width="2" fill="none"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"></path></svg>
+                    <span style="color:var(--err)">Cerrar Sesión (${user.email || 'Google'})</span>
+                  </button>`;
+                  StorageModule.syncFromCloud(user.uid);
+              } else {
+                  authBtn.innerHTML = `
+                  <button onclick="UIModule.closeAllModals(); UIModule.openModal('modal-account')">
+                    <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg> 
+                    Conectar Cuenta
+                  </button>`;
+              }
+          });
+      }
   };
 
   const GamificationModule = {
@@ -89,7 +204,7 @@
       if(appState.xp >= xpNeeded) {
         appState.level++;
         appState.xp -= xpNeeded;
-        UIModule.showToast(`✨ ¡Nivel Zenit ${appState.level} alcanzado!`);
+        UIModule.showToast(`Nivel Zenit ${appState.level} alcanzado`);
       }
       StorageModule.save();
       UIModule.updateMenuLevel();
@@ -129,6 +244,8 @@
     updateMenuLevel() {
       getEl('menu-level-display').textContent = appState.level;
       getEl('menu-xp-display').textContent = appState.xp;
+      const target = getEl('menu-xp-target');
+      if (target) target.textContent = appState.level * 100;
     },
     switchTab(tabId) {
       document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -143,7 +260,7 @@
       getEl('entreno-footer').classList.toggle('active', tabId === 'entreno' && UIState.selectedRoutineIndex !== null);
 
       if(tabId === 'dashboard') { CalendarModule.renderWeek(); TasksModule.render(); GoalsModule.render(); this.setGreeting(); }
-      if(tabId === 'entreno') { RoutineModule.renderAll(); TimerModule.startStopwatch(); }
+      if(tabId === 'entreno') { RoutineModule.renderAll(); }
       if(tabId === 'metas') { GoalsModule.render(); TasksModule.render(); }
       if(tabId === 'calendario') { CalendarModule.renderFull(); CalendarModule.renderStats(); }
       UIState.renderedTabs[tabId] = true;
@@ -225,7 +342,7 @@
       }
       if (consecutiveRest < 5) streak += tempRestDays;
 
-      getEl('streak-counter').textContent = streak > 0 ? `🔥 Racha viva: ${streak} días` : "Empieza hoy tu racha.";
+      getEl('streak-counter').innerHTML = streak > 0 ? `${SVG_ICONS.flame} Racha activa: ${streak} días` : "Empieza hoy tu racha.";
       const btnGroup = getEl('dash-actions');
       btnGroup.style.display = (appState.gymDays.includes(todayStr) || appState.restDays.includes(todayStr)) ? 'none' : 'flex';
     },
@@ -369,8 +486,8 @@
                   <input type="text" class="ex-name-input" value="${ex.name}" placeholder="Nombre..." list="exercise-library" maxlength="60" data-ex="${exIndex}">
                   <div>
                     ${activeItem.exercises.length > 1 ? `<button class="btn-icon btn-move-up" data-ex="${exIndex}">↑</button><button class="btn-icon btn-move-down" data-ex="${exIndex}">↓</button>` : ''}
-                    <button class="btn-icon btn-dup-ex" data-ex="${exIndex}">⧉</button>
-                    <button class="btn-icon btn-del-ex" style="color:var(--err)" data-ex="${exIndex}">🗑️</button>
+                    <button class="btn-icon btn-dup-ex" data-ex="${exIndex}">${SVG_ICONS.copy}</button>
+                    <button class="btn-icon btn-del-ex" style="color:var(--err)" data-ex="${exIndex}">${SVG_ICONS.trash}</button>
                   </div>
                 </div>
                 <div class="set-header-grid"><div></div><div>SET</div><div>KG</div><div>REPS</div><div>RPE</div></div>
@@ -434,7 +551,7 @@
          const routine = this.getActiveRoutine();
          routine.push({ id: generateUUID(), name: "Press IA Automático", sets: [{ id: generateUUID(), weight: 50, reps: 10, rpe: 8 }] });
          StorageModule.save(); this.renderAll();
-         UIModule.closeAllModals(); UIModule.showToast('✨ Rutina IA Importada');
+         UIModule.closeAllModals(); UIModule.showToast('Rutina IA Importada');
          ua.style.display = 'block'; la.style.display = 'none';
          fileInput.value = '';
       }, 2000);
@@ -451,7 +568,6 @@
       StorageModule.save();
       UIModule.showToast('Rutina guardada (+50 XP)');
       this.closeRoutine();
-      if ('serviceWorker' in navigator && 'SyncManager' in window) navigator.serviceWorker.ready.then(reg => reg.sync.register('sync-routine').catch(console.warn));
     }
   };
 
@@ -464,19 +580,12 @@
         if(timeLeft <= 0) this.stopRest();
       }, 1000);
     },
-    stopRest() { clearInterval(UIState.timerInterval); getEl('rest-timer').style.display = 'none'; },
-    startStopwatch() {
-      if(UIState.stopwatchInterval) return;
-      UIState.stopwatchInterval = setInterval(() => {
-        UIState.sessionSeconds++; sessionStorage.setItem('zenitSessionSecs', UIState.sessionSeconds);
-        getEl('session-stopwatch').textContent = `${Math.floor(UIState.sessionSeconds/60).toString().padStart(2,'0')}:${(UIState.sessionSeconds%60).toString().padStart(2,'0')}`;
-      }, 1000);
-    }
+    stopRest() { clearInterval(UIState.timerInterval); getEl('rest-timer').style.display = 'none'; }
   };
 
   const TasksModule = {
     render() {
-      const html = appState.tasks.map((t, i) => `<div class="task-row ${t.done?'done':''}"><div class="task-check btn-task" data-idx="${i}">✓</div><div class="task-text">${t.text}</div><button class="btn-icon task-delete" data-idx="${i}">✕</button></div>`).join('');
+      const html = appState.tasks.map((t, i) => `<div class="task-row ${t.done?'done':''}"><div class="task-check btn-task" data-idx="${i}">✓</div><div class="task-text">${t.text}</div><button class="btn-icon task-delete" data-idx="${i}">${SVG_ICONS.trash}</button></div>`).join('');
       const dashHtml = appState.tasks.map((t, i) => `<div class="task-row ${t.done?'done':''}"><div class="task-check btn-task" data-idx="${i}">✓</div><div class="task-text">${t.text}</div></div>`).join('');
       if(getEl('tasks-container-edit')) getEl('tasks-container-edit').innerHTML = html;
       if(getEl('tasks-container-dash')) getEl('tasks-container-dash').innerHTML = dashHtml;
@@ -489,8 +598,8 @@
 
   const GoalsModule = {
     render() {
-      const htmlEdit = appState.goals.map((g, i) => `<div class="card"><div class="ex-header" style="margin-bottom:8px; border:none; padding-bottom:0;"><div style="font-weight:900; font-size: 16px;">${g.title}</div><button class="btn-icon" style="color:var(--err)" data-goal-del="${i}">🗑️</button></div><div style="font-size:13px; color:var(--pri); font-weight: 800;">⏳ ${g.deadline}</div></div>`).join('');
-      const htmlDash = appState.goals.map((g, i) => `<div style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border);"><div style="font-size:14px; font-weight:800; color:var(--text-pri);">${g.title}</div><div style="font-size:12px; color:var(--pri); font-weight: 800; margin-top:4px;">⏳ ${g.deadline}</div></div>`).join('');
+      const htmlEdit = appState.goals.map((g, i) => `<div class="card"><div class="ex-header" style="margin-bottom:8px; border:none; padding-bottom:0;"><div style="font-weight:900; font-size: 16px;">${g.title}</div><button class="btn-icon" style="color:var(--err)" data-goal-del="${i}">${SVG_ICONS.trash}</button></div><div style="font-size:13px; color:var(--pri); font-weight: 800;">${SVG_ICONS.clock} ${g.deadline}</div></div>`).join('');
+      const htmlDash = appState.goals.map((g, i) => `<div style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border);"><div style="font-size:14px; font-weight:800; color:var(--text-pri);">${g.title}</div><div style="font-size:12px; color:var(--pri); font-weight: 800; margin-top:4px;">${SVG_ICONS.clock} ${g.deadline}</div></div>`).join('');
       const cDash = getEl('goals-container-dash');
       if(getEl('goals-container-edit')) getEl('goals-container-edit').innerHTML = htmlEdit;
       if(cDash) { cDash.innerHTML = htmlDash; if(cDash.lastElementChild) cDash.lastElementChild.style.borderBottom = 'none'; }
@@ -581,6 +690,7 @@
   }
 
   // EXPORTAMOS PARA QUE HTML LOS ENCUENTRE
+  window.AuthModule = AuthModule;
   window.UIModule = UIModule;
   window.RoutineModule = RoutineModule;
   window.CalendarModule = CalendarModule;
@@ -589,6 +699,7 @@
     StorageModule.load();
     UIModule.initSplash();
     UIModule.initQuotes();
+    AuthModule.initListener();
     initEvents();
     if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(console.warn));
   });

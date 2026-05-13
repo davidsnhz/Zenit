@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════
-   ZENIT — Service Worker
+   ZENIT — Service Worker (Cloud Sync)
 ═══════════════════════════════════════════════════════ */
-const APP_VERSION = '8.0.0';
+const APP_VERSION = '12.0.0';
 const CACHE = `zenit-v${APP_VERSION}`;
 
 const PRECACHE = [
@@ -34,6 +34,9 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
+  // Ignorar Firebase para evitar bloqueos del caché offline
+  if (url.hostname.includes('firebaseio.com') || url.hostname.includes('firestore') || url.hostname.includes('googleapis.com')) return;
+
   e.respondWith(
     caches.match(e.request).then(cached => {
       if (cached) return cached;
