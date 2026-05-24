@@ -1,707 +1,679 @@
-/* ═══════════════════════════════════════════════════════════
-   ZENIT v12.0 — app.js (Firebase Cloud Version)
-═══════════════════════════════════════════════════════════ */
+/* ================================================================
+   ZENIT – app.js  v1.0
+   ================================================================ */
 'use strict';
 
-(function() {
-  const APP_VERSION = '12.0.0';
-  
-  // --- FIREBASE SETUP ---
-  const firebaseConfig = {
-    apiKey: "AIzaSyBQLYN-_G3t_d49XFkJlGlzXk_z0ql5Eb4",
-    authDomain: "zenit-76017.firebaseapp.com",
-    projectId: "zenit-76017",
-    storageBucket: "zenit-76017.firebasestorage.app",
-    messagingSenderId: "1094461261782",
-    appId: "1:1094461261782:web:e2ef0cf1a311cbeef94677"
-  };
+/* ─────────────────────────────────────────────
+   FIREBASE CONFIG
+   ───────────────────────────────────────────── */
+const FIREBASE_CONFIG = {
+  apiKey: "TU_API_KEY", authDomain: "TU_AUTH_DOMAIN", projectId: "TU_PROJECT_ID",
+  storageBucket: "TU_STORAGE_BUCKET", messagingSenderId: "TU_MESSAGING_SENDER_ID", appId: "TU_APP_ID"
+};
 
-  if (typeof firebase !== 'undefined') {
-      firebase.initializeApp(firebaseConfig);
+/* ─────────────────────────────────────────────
+   CONSTANTES
+   ───────────────────────────────────────────── */
+const SCHEMA_VERSION = 1;
+const XP_PER_LEVEL = [0, 500, 1200, 2100, 3200, 4500, 6000, 7800, 9800, 12000, 15000];
+const LEAGUES = ['Bronce', 'Plata', 'Oro', 'Zafiro', 'Leyenda'];
+const LEAGUE_ICONS = { Bronce: '🥉', Plata: '🥈', Oro: '🥇', Zafiro: '💎', Leyenda: '👑' };
+const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const WISDOM = [
+  '"Lo que no te mata te hace más fuerte. - Nietzsche"',
+  '"Sufre el dolor de la disciplina o el de la decepción."',
+  '"No cuentes los días, haz que los días cuenten."',
+  '"El éxito es la suma de pequeños esfuerzos repetidos."',
+  '"Tu único competidor eres tú del ayer."',
+  '"La constancia supera al talento cuando el talento no es constante."'
+];
+
+const EXERCISE_DB = [
+  { name: 'Press de Banca', muscle: 'Pecho' }, { name: 'Press Inclinado', muscle: 'Pecho' },
+  { name: 'Peso Muerto', muscle: 'Espalda' }, { name: 'Dominadas', muscle: 'Espalda' },
+  { name: 'Press Militar', muscle: 'Hombros' }, { name: 'Elevaciones Laterales', muscle: 'Hombros' },
+  { name: 'Curl con Barra', muscle: 'Bíceps' }, { name: 'Press Francés', muscle: 'Tríceps' },
+  { name: 'Sentadilla Libre', muscle: 'Piernas' }, { name: 'Prensa de Pierna', muscle: 'Piernas' },
+  { name: 'Hip Thrust', muscle: 'Glúteos' }, { name: 'Plancha', muscle: 'Core' },
+  { name: 'Correr', muscle: 'Cardio' }
+];
+const MUSCLE_FILTERS = ['Todos','Pecho','Espalda','Hombros','Bíceps','Tríceps','Piernas','Glúteos','Core','Cardio'];
+const SIMULATED_USERS = [
+  { name: 'Alejandro R.', xp: 0 }, { name: 'María G.', xp: 0 }, { name: 'Carlos P.', xp: 0 },
+  { name: 'Sofía L.', xp: 0 }, { name: 'Diego M.', xp: 0 }
+];
+
+/* ─────────────────────────────────────────────
+   STATE MODULE
+   ───────────────────────────────────────────── */
+function defaultState() {
+  return {
+    schemaVersion: SCHEMA_VERSION, level: 1, xp: 0,
+    leagueXP: 0, league: 'Bronce',
+    friendCode: generateCode(), friends: [],
+    leagueSimulatedUsers: SIMULATED_USERS.map(u => ({ ...u, xp: Math.floor(Math.random() * 600) + 50 })),
+    gymDays: [], restDays: [],
+    weeklyRoutine: DAYS.map(d => ({ day: d, exercises: [] })),
+    muscleRoutine: [{ name: 'Grupo 1', exercises: [] }],
+    goals: [], tasks: [], recentExercises: [], exerciseHistory: {},
+    settings: { theme: 'dark', restDuration: 90, haptics: true, weightUnit: 'kg', notifications: { enabled: false, time: '20:00' } }
+  };
+}
+
+function generateCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  return Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+}
+
+const StateModule = (() => {
+  let state = null;
+  function load() {
+    try { const raw = localStorage.getItem('zenit_state'); state = raw ? deepMerge(defaultState(), JSON.parse(raw)) : defaultState(); } 
+    catch { state = defaultState(); }
+    return state;
   }
+  function save() { try { localStorage.setItem('zenit_state', JSON.stringify(state)); } catch (e) { UIModule.toast('Error al guardar', 'error'); } }
+  function get() { return state; }
+  function set(updates) { Object.assign(state, updates); save(); }
+  function saveField(path, value) { const keys = path.split('.'); let obj = state; for (let i = 0; i < keys.length - 1; i++) { obj = obj[keys[i]]; } obj[keys[keys.length - 1]] = value; save(); }
+  function deepMerge(target, source) { const out = { ...target }; for (const key in source) { if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) { out[key] = deepMerge(target[key] || {}, source[key]); } else { out[key] = source[key]; } } return out; }
+  return { load, save, get, set, saveField };
+})();
 
-  const auth = typeof firebase !== 'undefined' ? firebase.auth() : null;
-  const db = typeof firebase !== 'undefined' ? firebase.firestore() : null;
-
-  if (db) {
-      db.enablePersistence().catch(err => console.warn('Offline persistence issue', err));
+/* ─────────────────────────────────────────────
+   FIREBASE & UI MODULES
+   ───────────────────────────────────────────── */
+const FirebaseModule = (() => {
+  let app, auth, db, currentUser = null;
+  function init() {
+    try {
+      if (FIREBASE_CONFIG.apiKey === 'TU_API_KEY') return;
+      app = firebase.initializeApp(FIREBASE_CONFIG); auth = firebase.auth(); db = firebase.firestore();
+      auth.onAuthStateChanged(user => { currentUser = user; UIModule.updateAuthUI(user); });
+    } catch (e) { console.warn('Firebase no disponible:', e.message); }
   }
+  async function loginWithGoogle() {
+    if (!auth) { UIModule.toast('Firebase no configurado', 'error'); return; }
+    try { const provider = new firebase.auth.GoogleAuthProvider(); await auth.signInWithPopup(provider); } catch (e) { UIModule.toast('Error al iniciar sesión', 'error'); }
+  }
+  async function logout() { if (!auth) return; try { await auth.signOut(); currentUser = null; UIModule.updateAuthUI(null); UIModule.toast('Sesión cerrada', 'info'); } catch (e) { UIModule.toast('Error al cerrar', 'error'); } }
+  return { init, loginWithGoogle, logout };
+})();
+
+const UIModule = (() => {
+  const toastContainer = () => document.getElementById('toast-container');
+  function toast(msg, type = 'info', duration = 2800) {
+    const el = document.createElement('div'); el.className = `toast ${type}`; el.textContent = msg;
+    toastContainer().appendChild(el); setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translateY(10px)'; setTimeout(() => el.remove(), 400); }, duration);
+  }
+  function confirm(msg, onConfirm) {
+    const overlay = document.createElement('div'); overlay.style.cssText = 'position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center';
+    overlay.innerHTML = `<div style="background:var(--surface);border-radius:24px 24px 0 0;width:100%;padding:24px 20px 40px"><p style="font-size:15px;font-weight:600;text-align:center;margin-bottom:20px">${msg}</p><div style="display:flex;gap:10px"><button id="cf-cancel" style="flex:1;padding:12px;border-radius:12px;background:var(--surface2);border:1px solid var(--border);font-weight:700;cursor:pointer">Cancelar</button><button id="cf-ok" style="flex:1;padding:12px;border-radius:12px;background:var(--danger);color:#fff;font-weight:700;cursor:pointer">Confirmar</button></div></div>`;
+    document.body.appendChild(overlay); overlay.querySelector('#cf-cancel').addEventListener('click', () => overlay.remove()); overlay.querySelector('#cf-ok').addEventListener('click', () => { overlay.remove(); onConfirm(); });
+  }
+  function openSidebar() { document.getElementById('sidebar-overlay').classList.add('open'); document.getElementById('sidebar').classList.add('open'); }
+  function closeSidebar() { document.getElementById('sidebar-overlay').classList.remove('open'); document.getElementById('sidebar').classList.remove('open'); }
+  function openModal(id) { const el = document.getElementById(id); el.style.display = 'flex'; requestAnimationFrame(() => el.classList.add('open')); }
+  function closeModal(id) { const el = document.getElementById(id); el.classList.remove('open'); setTimeout(() => { el.style.display = 'none'; }, 350); }
   
-  // --- STATE ---
-  let appState = {
-    schemaVersion: 6,
-    level: 1,
-    xp: 0,
-    gymDays: [], 
-    restDays: [], 
-    weeklyRoutine: [
-      { id: 'd1', label: 'Lunes', name: '', exercises: [] }, { id: 'd2', label: 'Martes', name: '', exercises: [] },
-      { id: 'd3', label: 'Miércoles', name: '', exercises: [] }, { id: 'd4', label: 'Jueves', name: '', exercises: [] },
-      { id: 'd5', label: 'Viernes', name: '', exercises: [] }, { id: 'd6', label: 'Sábado', name: '', exercises: [] },
-      { id: 'd7', label: 'Domingo', name: '', exercises: [] }
-    ],
-    muscleRoutine: [
-      { id: generateUUID(), name: '', exercises: [] }
-    ],
-    goals: [],
-    tasks: [],
-    history: {}
-  };
+  function updateAuthUI(user) {
+    const avatarBtn = document.getElementById('avatar-btn');
+    const sbAvatar = document.getElementById('sb-avatar');
+    const sbName = document.getElementById('sb-name');
+    const sbEmail = document.getElementById('sb-email');
+    const loginBtn = document.getElementById('login-btn');
 
-  let UIState = {
-    currentMonthOffset: 0,
-    timerInterval: null,
-    stopwatchInterval: null,
-    sessionSeconds: 0,
-    routineViewMode: 'days', // 'days' | 'muscles'
-    selectedRoutineIndex: null, // null = list view, 0-N = detail view
-    renderedTabs: { dashboard: false, entreno: false, metas: false, calendario: false }
-  };
+    const userIcon = `<svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
+    const sbUserIcon = `<svg viewBox="0 0 24 24" width="32" height="32" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
 
-  // --- HELPERS ---
-  function generateUUID() { return crypto.randomUUID ? crypto.randomUUID() : (Date.now().toString(36) + Math.random().toString(36).substring(2)); }
-  function getLocalDateStr(d = new Date()) { return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().split('T')[0]; }
-  function triggerHaptic(pattern) { if(navigator.vibrate) navigator.vibrate(pattern); }
-  function getEl(id) { return document.getElementById(id); }
-
-  const SVG_ICONS = {
-    flame: `<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" style="vertical-align: middle; margin-right: 4px; margin-bottom: 2px;"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"></path></svg>`,
-    trash: `<svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path></svg>`,
-    copy: `<svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path></svg>`,
-    clock: `<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" style="vertical-align: middle; margin-right: 4px; margin-bottom: 2px;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`
-  };
-
-  const wisdomQuotes = [
-    "\"Una zona de confort es un lugar hermoso, pero nada crece allí.\"",
-    "\"La disciplina te llevará a donde la motivación no alcanza.\"",
-    "\"No temas crecer lentamente; teme solo quedarte quieto.\"",
-    "\"Lo que no te mata te hace más fuerte.\"",
-    "\"Cada mañana nacemos de nuevo. Lo que hacemos hoy es lo que importa.\""
-  ];
-
-  // --- MODULES ---
-  const StorageModule = {
-    load() {
-      const saved = localStorage.getItem('zenitState');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed.schemaVersion < 6) this.migrate(parsed);
-        else appState = parsed;
-      }
-      const savedSeconds = sessionStorage.getItem('zenitSessionSecs');
-      if (savedSeconds) UIState.sessionSeconds = parseInt(savedSeconds, 10);
-    },
-    save() {
-      localStorage.setItem('zenitState', JSON.stringify(appState));
-      
-      if (auth && auth.currentUser && db) {
-         db.collection('users').doc(auth.currentUser.uid).set(appState)
-           .catch(e => console.warn('Error syncing to cloud', e));
-      }
-    },
-    migrate(oldState) {
-      appState = { ...appState, ...oldState, schemaVersion: 6 };
-      if (!appState.level) appState.level = 1;
-      if (!appState.xp) appState.xp = 0;
-      
-      if (oldState.schemaVersion < 6) {
-          appState.muscleRoutine = [ { id: generateUUID(), name: '', exercises: [] } ];
-      }
-      
-      if(appState.weeklyRoutine && appState.weeklyRoutine[0].day) {
-         appState.weeklyRoutine.forEach(r => { r.label = r.day; delete r.day; });
-      }
-      this.save();
-    },
-    syncFromCloud(uid) {
-        if (!db) return;
-        db.collection('users').doc(uid).get().then(doc => {
-            if (doc.exists) {
-                const cloudState = doc.data();
-                if (cloudState.schemaVersion < 6) this.migrate(cloudState);
-                else appState = cloudState;
-                localStorage.setItem('zenitState', JSON.stringify(appState));
-                
-                const activeBtn = document.querySelector('.nav-item.active');
-                if(activeBtn) UIModule.switchTab(activeBtn.dataset.target);
-                UIModule.showToast('☁️ Datos sincronizados de la nube');
-            } else {
-                this.save();
-            }
-        }).catch(err => console.warn("Sync err", err));
-    }
-  };
-
-  const AuthModule = {
-      loginGoogle() {
-          if(!auth) return UIModule.showToast("Error de conexión a Firebase");
-          const provider = new firebase.auth.GoogleAuthProvider();
-          auth.signInWithPopup(provider).then(() => {
-              UIModule.closeAllModals();
-              UIModule.showToast('Sesión iniciada con Google');
-          }).catch(err => UIModule.showToast('Error: ' + err.message));
-      },
-      loginEmail() {
-          if(!auth) return UIModule.showToast("Error de conexión a Firebase");
-          const email = getEl('email-input').value.trim();
-          const pass = getEl('password-input').value;
-          if(!email || pass.length < 6) return UIModule.showToast('Correo inválido o clave corta (mín 6).');
-
-          auth.signInWithEmailAndPassword(email, pass)
-            .then(() => {
-               UIModule.closeAllModals();
-               UIModule.showToast('Sesión iniciada correctamente');
-            })
-            .catch(err => {
-               if(err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
-                  auth.createUserWithEmailAndPassword(email, pass)
-                     .then(() => {
-                        UIModule.closeAllModals();
-                        UIModule.showToast('Cuenta creada con éxito');
-                     })
-                     .catch(e => UIModule.showToast('Error: ' + e.message));
-               } else {
-                  UIModule.showToast('Error: ' + err.message);
-               }
-            });
-      },
-      logout() {
-          if(auth) {
-              auth.signOut().then(() => {
-                 UIModule.closeAllModals();
-                 UIModule.showToast("Sesión cerrada");
-              });
-          }
-      },
-      initListener() {
-          if(!auth) return;
-          auth.onAuthStateChanged(user => {
-              const authBtn = getEl('menu-auth-btn');
-              if(!authBtn) return;
-
-              if (user) {
-                  authBtn.innerHTML = `
-                  <button onclick="AuthModule.logout()">
-                    <svg viewBox="0 0 24 24" width="20" height="20" stroke="var(--err)" stroke-width="2" fill="none"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"></path></svg>
-                    <span style="color:var(--err)">Cerrar Sesión (${user.email || 'Google'})</span>
-                  </button>`;
-                  StorageModule.syncFromCloud(user.uid);
-              } else {
-                  authBtn.innerHTML = `
-                  <button onclick="UIModule.closeAllModals(); UIModule.openModal('modal-account')">
-                    <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg> 
-                    Conectar Cuenta
-                  </button>`;
-              }
-          });
-      }
-  };
-
-  const GamificationModule = {
-    addXP(amount) {
-      appState.xp += amount;
-      const xpNeeded = appState.level * 100;
-      if(appState.xp >= xpNeeded) {
-        appState.level++;
-        appState.xp -= xpNeeded;
-        UIModule.showToast(`Nivel Zenit ${appState.level} alcanzado`);
-      }
-      StorageModule.save();
-      UIModule.updateMenuLevel();
-    }
-  };
-
-  const UIModule = {
-    initSplash() {
-      setTimeout(() => {
-        const s = getEl('splash-screen');
-        if(s) {
-           s.style.opacity = '0';
-           setTimeout(() => s.style.display = 'none', 500);
-        }
-      }, 1500);
-    },
-    showToast(msg) {
-      const toast = getEl('toast');
-      toast.textContent = msg;
-      toast.classList.add('show');
-      setTimeout(() => toast.classList.remove('show'), 2500);
-    },
-    openModal(id) {
-      getEl('main-overlay').classList.add('open');
-      getEl(id).classList.add('open');
-    },
-    closeAllModals() {
-      getEl('main-overlay').classList.remove('open');
-      getEl('side-menu').classList.remove('open');
-      document.querySelectorAll('.modal').forEach(m => m.classList.remove('open'));
-    },
-    openMenu() {
-      getEl('main-overlay').classList.add('open');
-      getEl('side-menu').classList.add('open');
-      this.updateMenuLevel();
-    },
-    updateMenuLevel() {
-      getEl('menu-level-display').textContent = appState.level;
-      getEl('menu-xp-display').textContent = appState.xp;
-      const target = getEl('menu-xp-target');
-      if (target) target.textContent = appState.level * 100;
-    },
-    switchTab(tabId) {
-      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-      document.querySelectorAll('.nav-item').forEach(b => { b.classList.remove('active'); b.removeAttribute('aria-current'); });
-      
-      const targetScreen = getEl(`view-${tabId}`);
-      if(targetScreen) targetScreen.classList.add('active');
-      
-      const targetBtn = document.querySelector(`.nav-item[data-target="${tabId}"]`);
-      if(targetBtn) { targetBtn.classList.add('active'); targetBtn.setAttribute('aria-current', 'page'); }
-
-      getEl('entreno-footer').classList.toggle('active', tabId === 'entreno' && UIState.selectedRoutineIndex !== null);
-
-      if(tabId === 'dashboard') { CalendarModule.renderWeek(); TasksModule.render(); GoalsModule.render(); this.setGreeting(); }
-      if(tabId === 'entreno') { RoutineModule.renderAll(); }
-      if(tabId === 'metas') { GoalsModule.render(); TasksModule.render(); }
-      if(tabId === 'calendario') { CalendarModule.renderFull(); CalendarModule.renderStats(); }
-      UIState.renderedTabs[tabId] = true;
-    },
-    setGreeting() {
-      const hour = new Date().getHours();
-      const weekNum = Math.ceil(Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 1)) / (24 * 60 * 60 * 1000)) / 7);
-      
-      let text = "Buenas noches";
-      if (hour >= 8 && hour < 14) text = "Buenos días";
-      if (hour >= 14 && hour < 22) text = "Buenas tardes";
-      
-      getEl('dash-greeting').textContent = `${text} · Semana ${weekNum}`;
-    },
-    initQuotes() {
-      const frases = [
-        "La mejor forma de predecir el futuro es creándolo.",
-        "Cada mañana nacemos de nuevo. Lo que hacemos hoy importa.",
-        "Los obstáculos son el coste de la grandeza. - Sharma",
-        "Nunca dejes de aprender, porque la vida nunca deja de enseñar.",
-        "Lo que no te mata te hace más fuerte. - Nietzsche",
-        "No se trata de ser el mejor, sino de ser mejor de lo que eras ayer.",
-        "Si puedes soñarlo, puedes hacerlo. - Ziglar",
-        "No cuentes los días, haz que los días cuenten. - Ali",
-        "Mente positiva, vibraciones positivas, vida positiva.",
-        "La fortaleza no llega de la capacidad física, sino de la voluntad.",
-        "El éxito no viene a ti, tú vas hacia él.",
-        "Nadie eres tú y ese es tu superpoder.",
-        "Sé más fuerte que tus excusas."
-      ];
-      getEl('motivational-quote').textContent = `"${frases[Math.floor(Math.random() * frases.length)]}"`;
-    }
-  };
-
-  const CalendarModule = {
-    renderWeek() {
-      const today = new Date();
-      const todayStr = getLocalDateStr(today);
-      const container = getEl('week-calendar-container');
-      const monday = new Date(today);
-      monday.setDate(today.getDate() - (today.getDay() || 7) + 1);
-      
-      let html = '';
-      const days = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
-      for (let i = 0; i < 7; i++) {
-        const d = new Date(monday); d.setDate(monday.getDate() + i);
-        const dStr = getLocalDateStr(d);
-        const isToday = dStr === todayStr;
-        const isLogged = appState.gymDays.includes(dStr);
-        const isRest = appState.restDays.includes(dStr);
-        const isFuture = d > today && !isToday;
-        
-        let dayClass = '';
-        if(isLogged) dayClass = 'logged'; else if(isRest) dayClass = 'rest';
-        html += `<div class="day-col ${isToday ? 'today' : ''} ${dayClass} ${isFuture ? 'future' : ''}"><div class="day-name">${days[i]}</div><div class="day-num">${d.getDate()}</div></div>`;
-      }
-      container.innerHTML = html;
-
-      let streak = 0, consecutiveRest = 0, checkDate = new Date(today), isFirstDay = true, tempRestDays = 0;
-      while(true) {
-        const dStr = getLocalDateStr(checkDate);
-        const isGym = appState.gymDays.includes(dStr);
-        const isRest = appState.restDays.includes(dStr);
-        if (isGym) { 
-            streak += 1 + tempRestDays; 
-            tempRestDays = 0; 
-            consecutiveRest = 0; 
-        } 
-        else if (isRest) { 
-            consecutiveRest++; 
-            if (consecutiveRest >= 5) break; 
-            tempRestDays++; 
-        } 
-        else { 
-            if (!isFirstDay) break; 
-        }
-        isFirstDay = false; 
-        checkDate.setDate(checkDate.getDate() - 1);
-      }
-      if (consecutiveRest < 5) streak += tempRestDays;
-
-      getEl('streak-counter').innerHTML = streak > 0 ? `${SVG_ICONS.flame} Racha activa: ${streak} días` : "Empieza hoy tu racha.";
-      const btnGroup = getEl('dash-actions');
-      btnGroup.style.display = (appState.gymDays.includes(todayStr) || appState.restDays.includes(todayStr)) ? 'none' : 'flex';
-    },
-    renderFull() {
-      const targetDate = new Date(); targetDate.setMonth(targetDate.getMonth() + UIState.currentMonthOffset);
-      const year = targetDate.getFullYear(), month = targetDate.getMonth(), todayStr = getLocalDateStr(new Date());
-      const months = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
-      getEl('full-month-name').textContent = `${months[month]} ${year}`;
-      
-      let html = '';
-      const firstDay = new Date(year, month, 1), lastDay = new Date(year, month + 1, 0), startIdx = firstDay.getDay() || 7;
-      const prevMonthLastDay = new Date(year, month, 0).getDate();
-      for (let i = startIdx - 1; i > 0; i--) html += `<div class="cal-day adjacent">${prevMonthLastDay - i + 1}</div>`;
-      for (let i = 1; i <= lastDay.getDate(); i++) {
-        const dStr = getLocalDateStr(new Date(year, month, i));
-        let dayClass = '';
-        if(appState.gymDays.includes(dStr)) dayClass = 'logged'; else if(appState.restDays.includes(dStr)) dayClass = 'rest';
-        html += `<div class="cal-day ${dayClass} ${dStr === todayStr ? 'today' : ''}" data-date="${dStr}">${i}</div>`;
-      }
-      const nextDays = (7 - ((startIdx - 1 + lastDay.getDate()) % 7)) % 7;
-      for (let i = 1; i <= nextDays; i++) html += `<div class="cal-day adjacent">${i}</div>`;
-      getEl('full-calendar-container').innerHTML = html;
-    },
-    renderStats() {
-      getEl('stat-total').textContent = appState.gymDays.length;
-      let maxStreak = 0;
-      const allDays = [...new Set([...appState.gymDays, ...appState.restDays])].sort();
-      if (allDays.length > 0) {
-        let tempStreak = 0, tempRest = 0;
-        for (let d = new Date(allDays[0]); d <= new Date(allDays[allDays.length - 1]); d.setDate(d.getDate() + 1)) {
-           const dStr = getLocalDateStr(d);
-           if (appState.gymDays.includes(dStr)) { 
-               tempStreak += 1 + tempRest; 
-               tempRest = 0; 
-               if (tempStreak > maxStreak) maxStreak = tempStreak; 
-           } 
-           else if (appState.restDays.includes(dStr)) { 
-               tempRest++; 
-               if (tempRest >= 5) { tempStreak = 0; tempRest = 0; } 
-               else { if (tempStreak > 0 && (tempStreak + tempRest) > maxStreak) maxStreak = tempStreak + tempRest; } 
-           } 
-           else { tempStreak = 0; tempRest = 0; }
-        }
-      }
-      getEl('stat-streak').textContent = maxStreak;
-
-      let hHtml = '';
-      const keys = Object.keys(appState.history).sort().reverse().slice(0,5);
-      keys.forEach(k => hHtml += `<div class="task-row"><div class="task-text" style="font-weight:800; color:var(--text-pri)">${k}</div><div style="color:var(--text-sec)">${appState.history[k].length} Ejs.</div></div>`);
-      getEl('history-container').innerHTML = hHtml || '<div style="color:var(--text-sec); font-size:13px;">No hay historial.</div>';
-    },
-    cycleDayState(dateStr) {
-      triggerHaptic(10);
-      const isGym = appState.gymDays.includes(dateStr), isRest = appState.restDays.includes(dateStr);
-      if(isGym) { appState.gymDays = appState.gymDays.filter(d => d !== dateStr); appState.restDays.push(dateStr); } 
-      else if (isRest) { appState.restDays = appState.restDays.filter(d => d !== dateStr); } 
-      else { appState.gymDays.push(dateStr); }
-      StorageModule.save(); this.renderFull(); this.renderStats(); if(UIState.renderedTabs.dashboard) this.renderWeek();
-    },
-    markDay(dateStr, type) {
-      triggerHaptic(10);
-      appState.gymDays = appState.gymDays.filter(d => d !== dateStr);
-      appState.restDays = appState.restDays.filter(d => d !== dateStr);
-      if(type === 'gym') appState.gymDays.push(dateStr);
-      if(type === 'rest') appState.restDays.push(dateStr);
-      StorageModule.save(); this.renderWeek(); if(UIState.renderedTabs.calendario) { this.renderFull(); this.renderStats(); }
-    }
-  };
-
-  const RoutineModule = {
-    getActiveList() { return UIState.routineViewMode === 'days' ? appState.weeklyRoutine : appState.muscleRoutine; },
-    renderAll() {
-      const listView = getEl('routine-list-view'), dayView = getEl('routine-day-view'), footer = getEl('entreno-footer');
-      
-      document.querySelectorAll('.toggle-btn').forEach(btn => {
-         btn.classList.toggle('active', btn.dataset.view === UIState.routineViewMode);
-      });
-
-      if (UIState.selectedRoutineIndex === null) {
-        listView.style.display = 'block'; dayView.style.display = 'none'; footer.classList.remove('active');
-        const list = this.getActiveList();
-        let html = '';
-        list.forEach((item, idx) => {
-          const hasExercises = item.exercises.length > 0;
-          let leftText, rightText;
-          
-          if (UIState.routineViewMode === 'days') {
-             leftText = item.label; 
-             rightText = hasExercises ? (item.name || 'Rutina') : 'Descanso';
-          } else {
-             leftText = item.name || 'Nuevo Grupo'; 
-             rightText = hasExercises ? `${item.exercises.length} Ejs.` : 'Vacío';
-          }
-
-          html += `
-            <div class="card" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center; padding: 24px 20px;" data-open-routine="${idx}">
-              <span style="font-size:18px; font-weight:900;">${leftText}</span>
-              <span style="color:var(--text-sec); font-size:14px; font-weight:600;">${rightText} <span style="margin-left:8px; font-size:18px;">›</span></span>
-            </div>`;
-        });
-
-        if (UIState.routineViewMode === 'muscles') {
-          html += `<button class="btn-primary btn-secondary" onclick="RoutineModule.addGroup()" style="margin-top:10px;">+ AÑADIR GRUPO</button>`;
-        }
-
-        getEl('routine-list-container').innerHTML = html;
+    if (user) {
+      if (user.photoURL) {
+        avatarBtn.innerHTML = `<img src="${user.photoURL}" alt=""/>`;
+        sbAvatar.innerHTML = `<img src="${user.photoURL}" alt=""/>`;
       } else {
-        listView.style.display = 'none'; dayView.style.display = 'block'; footer.classList.add('active');
-        const list = this.getActiveList();
-        const activeItem = list[UIState.selectedRoutineIndex];
-        
-        getEl('routine-day-title').textContent = UIState.routineViewMode === 'days' ? activeItem.label : 'Grupo';
-        const nameInput = getEl('routine-name-input');
-        nameInput.value = activeItem.name || '';
-        nameInput.placeholder = UIState.routineViewMode === 'days' ? 'Ej. Pecho y tríceps' : 'Nombre del grupo (ej. Pierna)';
-
-        const container = getEl('routine-container'), emptyState = getEl('empty-routine');
-        if(activeItem.exercises.length === 0) {
-          container.innerHTML = ''; emptyState.style.display = 'block';
-          getEl('empty-wisdom-quote').textContent = wisdomQuotes[Math.floor(Math.random()*wisdomQuotes.length)];
-          getEl('empty-routine-title').textContent = UIState.routineViewMode === 'days' ? 'Descanso programado' : 'Grupo vacío';
-          this.updateTotalVolume(); 
-        } else {
-          emptyState.style.display = 'none';
-          let html = '';
-          activeItem.exercises.forEach((ex, exIndex) => {
-            let setsHtml = '';
-            ex.sets.forEach((set, setIndex) => {
-              setsHtml += `
-                <div class="set-grid set-row" data-ex="${exIndex}" data-set="${setIndex}">
-                  <div class="task-check btn-complete-set" style="width:20px;height:20px;border-color:var(--border);">✓</div>
-                  <div class="set-label">${setIndex + 1}</div>
-                  <input type="number" step="0.5" min="0" max="999" class="inline-input input-val" data-field="weight" value="${set.weight}">
-                  <input type="number" min="1" max="200" class="inline-input input-val" data-field="reps" value="${set.reps}">
-                  <input type="number" min="1" max="10" class="inline-input input-val" data-field="rpe" value="${set.rpe}">
-                </div>`;
-            });
-            html += `
-              <div class="card card-anim" id="ex-${ex.id}">
-                <div class="ex-header">
-                  <input type="text" class="ex-name-input" value="${ex.name}" placeholder="Nombre..." list="exercise-library" maxlength="60" data-ex="${exIndex}">
-                  <div>
-                    ${activeItem.exercises.length > 1 ? `<button class="btn-icon btn-move-up" data-ex="${exIndex}">↑</button><button class="btn-icon btn-move-down" data-ex="${exIndex}">↓</button>` : ''}
-                    <button class="btn-icon btn-dup-ex" data-ex="${exIndex}">${SVG_ICONS.copy}</button>
-                    <button class="btn-icon btn-del-ex" style="color:var(--err)" data-ex="${exIndex}">${SVG_ICONS.trash}</button>
-                  </div>
-                </div>
-                <div class="set-header-grid"><div></div><div>SET</div><div>KG</div><div>REPS</div><div>RPE</div></div>
-                <div class="sets-container">${setsHtml}</div>
-                <button class="btn-primary btn-secondary btn-add-set" style="font-size: 13px; padding: 10px;" data-ex="${exIndex}">+ AÑADIR SERIE</button>
-                <div class="stats-row" id="stats-${ex.id}">
-                  <div>Volumen: <span class="stats-val vol-val">0 kg</span></div>
-                  <div>1RM Est.: <span class="stats-val rm-val">0 kg</span></div>
-                </div>
-              </div>`;
-          });
-          container.innerHTML = html;
-          activeItem.exercises.forEach(ex => this.updateExStats(ex));
-          this.updateTotalVolume();
-        }
-
-        const delBtn = getEl('btn-delete-group');
-        if (UIState.routineViewMode === 'muscles') {
-           delBtn.style.display = 'block';
-           delBtn.onclick = () => {
-              appState.muscleRoutine.splice(UIState.selectedRoutineIndex, 1);
-              StorageModule.save();
-              RoutineModule.closeRoutine();
-           };
-        } else {
-           delBtn.style.display = 'none';
-        }
+        const initials = (user.displayName || user.email || 'U').charAt(0).toUpperCase();
+        avatarBtn.textContent = initials;
+        sbAvatar.textContent = initials;
       }
-    },
-    openRoutine(idx) { UIState.selectedRoutineIndex = idx; this.renderAll(); },
-    closeRoutine() { UIState.selectedRoutineIndex = null; this.renderAll(); },
-    getActiveRoutine() { return this.getActiveList()[UIState.selectedRoutineIndex].exercises; },
-    addExercise() { this.getActiveRoutine().push({ id: generateUUID(), name: "", sets: [{ id: generateUUID(), weight: 0, reps: 0, rpe: 0 }] }); StorageModule.save(); this.renderAll(); },
-    addGroup() {
-      appState.muscleRoutine.push({ id: generateUUID(), name: '', exercises: [] });
-      StorageModule.save();
-      this.renderAll();
-    },
-    duplicateExercise(idx) { const routine = this.getActiveRoutine(); const copy = JSON.parse(JSON.stringify(routine[idx])); copy.id = generateUUID(); copy.sets.forEach(s => s.id = generateUUID()); routine.splice(idx + 1, 0, copy); StorageModule.save(); this.renderAll(); },
-    moveExercise(idx, dir) { const r = this.getActiveRoutine(); if(dir === 'up' && idx > 0) [r[idx], r[idx-1]] = [r[idx-1], r[idx]]; else if (dir === 'down' && idx < r.length - 1) [r[idx], r[idx+1]] = [r[idx+1], r[idx]]; StorageModule.save(); this.renderAll(); },
-    updateExStats(ex) {
-      let vol = 0, rm = 0;
-      ex.sets.forEach(s => { vol += s.weight * s.reps; const epley = s.weight * (1 + 0.0333 * s.reps); if(epley > rm) rm = epley; });
-      const sd = getEl(`stats-${ex.id}`);
-      if(sd) { sd.querySelector('.vol-val').textContent = `${vol.toFixed(0)} kg`; sd.querySelector('.rm-val').textContent = `${rm.toFixed(1)} kg`; }
-      this.updateTotalVolume();
-    },
-    updateTotalVolume() {
-      if (UIState.selectedRoutineIndex === null) return;
-      let tot = 0; this.getActiveRoutine().forEach(ex => ex.sets.forEach(s => tot += s.weight * s.reps));
-      getEl('total-session-volume').textContent = `${tot.toFixed(0)} kg`;
-    },
-    simulateAIImport() {
-      const fileInput = getEl('ai-file-input');
-      if (!fileInput || !fileInput.files || fileInput.files.length === 0) return;
-      
-      const ua = getEl('ai-upload-area'), la = getEl('ai-loading-area');
-      ua.style.display = 'none'; la.style.display = 'block';
-      
-      setTimeout(() => {
-         const routine = this.getActiveRoutine();
-         routine.push({ id: generateUUID(), name: "Press IA Automático", sets: [{ id: generateUUID(), weight: 50, reps: 10, rpe: 8 }] });
-         StorageModule.save(); this.renderAll();
-         UIModule.closeAllModals(); UIModule.showToast('Rutina IA Importada');
-         ua.style.display = 'block'; la.style.display = 'none';
-         fileInput.value = '';
-      }, 2000);
-    },
-    executeSave() {
-      triggerHaptic([20,50,20]);
-      const list = this.getActiveList(), activeItem = list[UIState.selectedRoutineIndex];
-      const today = new Date(), jsDay = today.getDay() === 0 ? 6 : today.getDay() - 1; 
-
-      if (UIState.routineViewMode === 'days' && jsDay === UIState.selectedRoutineIndex && activeItem.exercises.length > 0) {
-        const targetDate = getLocalDateStr();
-        appState.history[targetDate] = JSON.parse(JSON.stringify(activeItem.exercises));
-      }
-      StorageModule.save();
-      UIModule.showToast('Rutina guardada (+50 XP)');
-      this.closeRoutine();
+      sbName.textContent = user.displayName || 'Usuario';
+      sbEmail.textContent = user.email;
+      loginBtn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> Cerrar sesión`;
+      loginBtn.className = 'auth-btn logout'; loginBtn.dataset.action = 'logout';
+    } else {
+      avatarBtn.innerHTML = userIcon;
+      sbAvatar.innerHTML = sbUserIcon;
+      sbName.textContent = 'Usuario';
+      sbEmail.textContent = 'Sin sesión iniciada';
+      loginBtn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg> Iniciar sesión con Google`;
+      loginBtn.className = 'auth-btn'; loginBtn.dataset.action = 'login';
     }
-  };
-
-  const TimerModule = {
-    startRest() {
-      clearInterval(UIState.timerInterval); let timeLeft = 90;
-      getEl('rest-timer').style.display = 'flex';
-      UIState.timerInterval = setInterval(() => {
-        timeLeft--; getEl('timer-display').textContent = `${Math.floor(timeLeft/60).toString().padStart(2,'0')}:${(timeLeft%60).toString().padStart(2,'0')}`;
-        if(timeLeft <= 0) this.stopRest();
-      }, 1000);
-    },
-    stopRest() { clearInterval(UIState.timerInterval); getEl('rest-timer').style.display = 'none'; }
-  };
-
-  const TasksModule = {
-    render() {
-      const html = appState.tasks.map((t, i) => `<div class="task-row ${t.done?'done':''}"><div class="task-check btn-task" data-idx="${i}">✓</div><div class="task-text">${t.text}</div><button class="btn-icon task-delete" data-idx="${i}">${SVG_ICONS.trash}</button></div>`).join('');
-      const dashHtml = appState.tasks.map((t, i) => `<div class="task-row ${t.done?'done':''}"><div class="task-check btn-task" data-idx="${i}">✓</div><div class="task-text">${t.text}</div></div>`).join('');
-      if(getEl('tasks-container-edit')) getEl('tasks-container-edit').innerHTML = html;
-      if(getEl('tasks-container-dash')) getEl('tasks-container-dash').innerHTML = dashHtml;
-      if(getEl('dash-tasks-empty')) getEl('dash-tasks-empty').style.display = appState.tasks.length === 0 ? 'block' : 'none';
-    },
-    add(text) {
-      appState.tasks.push({text: text.substring(0,40), done: false}); StorageModule.save(); this.render();
-    }
-  };
-
-  const GoalsModule = {
-    render() {
-      const htmlEdit = appState.goals.map((g, i) => `<div class="card"><div class="ex-header" style="margin-bottom:8px; border:none; padding-bottom:0;"><div style="font-weight:900; font-size: 16px;">${g.title}</div><button class="btn-icon" style="color:var(--err)" data-goal-del="${i}">${SVG_ICONS.trash}</button></div><div style="font-size:13px; color:var(--pri); font-weight: 800;">${SVG_ICONS.clock} ${g.deadline}</div></div>`).join('');
-      const htmlDash = appState.goals.map((g, i) => `<div style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border);"><div style="font-size:14px; font-weight:800; color:var(--text-pri);">${g.title}</div><div style="font-size:12px; color:var(--pri); font-weight: 800; margin-top:4px;">${SVG_ICONS.clock} ${g.deadline}</div></div>`).join('');
-      const cDash = getEl('goals-container-dash');
-      if(getEl('goals-container-edit')) getEl('goals-container-edit').innerHTML = htmlEdit;
-      if(cDash) { cDash.innerHTML = htmlDash; if(cDash.lastElementChild) cDash.lastElementChild.style.borderBottom = 'none'; }
-      if(getEl('dash-goals-empty')) getEl('dash-goals-empty').style.display = appState.goals.length === 0 ? 'block' : 'none';
-    },
-    add() {
-      const t = getEl('goal-title').value.trim(), d = getEl('goal-deadline').value.trim();
-      if(!t || !d) return UIModule.showToast('Datos inválidos');
-      appState.goals.push({title: t.substring(0,60), deadline: d.substring(0,60)}); StorageModule.save(); this.render();
-      getEl('goal-title').value = ''; getEl('goal-deadline').value = '';
-    }
-  };
-
-  // --- INIT & EVENTS ---
-  function initEvents() {
-    document.body.addEventListener('click', e => { const nt = e.target.closest('.nav-trigger'); if(nt) UIModule.switchTab(nt.dataset.target); });
-    
-    getEl('btn-mark-today').addEventListener('click', () => CalendarModule.markDay(getLocalDateStr(), 'gym'));
-    getEl('btn-mark-rest').addEventListener('click', () => CalendarModule.markDay(getLocalDateStr(), 'rest'));
-    
-    getEl('btn-add-task').addEventListener('click', () => { const i = getEl('new-task-input'); if(i.value) TasksModule.add(i.value); i.value = ''; });
-    document.body.addEventListener('click', e => {
-      if(e.target.classList.contains('btn-task')) { const idx = e.target.dataset.idx; appState.tasks[idx].done = !appState.tasks[idx].done; if(appState.tasks[idx].done) GamificationModule.addXP(10); StorageModule.save(); TasksModule.render(); }
-      if(e.target.classList.contains('task-delete')) { appState.tasks.splice(e.target.dataset.idx, 1); StorageModule.save(); TasksModule.render(); }
-      const gBtn = e.target.closest('button'); if(gBtn && gBtn.dataset.goalDel !== undefined) { appState.goals.splice(gBtn.dataset.goalDel, 1); StorageModule.save(); GoalsModule.render(); }
-    });
-    getEl('btn-add-goal').addEventListener('click', () => GoalsModule.add());
-
-    getEl('full-calendar-container').addEventListener('click', e => { if(e.target.classList.contains('cal-day') && !e.target.classList.contains('adjacent')) CalendarModule.cycleDayState(e.target.dataset.date); });
-    getEl('cal-prev').addEventListener('click', () => { UIState.currentMonthOffset--; CalendarModule.renderFull(); });
-    getEl('cal-next').addEventListener('click', () => { UIState.currentMonthOffset++; CalendarModule.renderFull(); });
-
-    document.querySelectorAll('.toggle-btn').forEach(btn => {
-       btn.addEventListener('click', (e) => {
-          UIState.routineViewMode = e.target.dataset.view;
-          RoutineModule.renderAll();
-       });
-    });
-
-    getEl('routine-list-container').addEventListener('click', e => { const c = e.target.closest('.card'); if(c && c.dataset.openRoutine !== undefined) RoutineModule.openRoutine(parseInt(c.dataset.openRoutine, 10)); });
-    getEl('btn-back-week').addEventListener('click', () => RoutineModule.closeRoutine());
-    getEl('routine-name-input').addEventListener('input', e => { 
-       if(UIState.selectedRoutineIndex !== null) { 
-          RoutineModule.getActiveList()[UIState.selectedRoutineIndex].name = e.target.value.substring(0,40); 
-          StorageModule.save(); 
-       } 
-    });
-    getEl('btn-add-exercise').addEventListener('click', () => RoutineModule.addExercise());
-    
-    getEl('btn-save-routine').addEventListener('click', () => UIModule.openModal('modal-energy'));
-    document.querySelectorAll('.btn-energy').forEach(btn => {
-      btn.addEventListener('click', () => {
-         UIModule.closeAllModals();
-         RoutineModule.executeSave();
-         GamificationModule.addXP(50);
-      });
-    });
-
-    getEl('btn-cancel-timer').addEventListener('click', () => TimerModule.stopRest());
-
-    const rCont = getEl('routine-container');
-    rCont.addEventListener('click', e => {
-      const btn = e.target.closest('button, .btn-complete-set'); if(!btn) return;
-      const exIdx = parseInt(btn.dataset.ex, 10), routine = RoutineModule.getActiveRoutine();
-      if(btn.classList.contains('btn-add-set')) { const sets = routine[exIdx].sets; const ls = sets.length ? sets[sets.length-1] : {weight:0, reps:0, rpe:0}; sets.push({...ls, id: generateUUID()}); StorageModule.save(); RoutineModule.renderAll(); }
-      else if(btn.classList.contains('btn-del-ex')) { routine.splice(exIdx, 1); StorageModule.save(); RoutineModule.renderAll(); }
-      else if(btn.classList.contains('btn-dup-ex')) { RoutineModule.duplicateExercise(exIdx); }
-      else if(btn.classList.contains('btn-move-up')) { RoutineModule.moveExercise(exIdx, 'up'); }
-      else if(btn.classList.contains('btn-move-down')) { RoutineModule.moveExercise(exIdx, 'down'); }
-      else if(btn.classList.contains('btn-complete-set')) { triggerHaptic(15); btn.closest('.set-row').classList.toggle('completed'); TimerModule.startRest(); }
-    });
-
-    let dt;
-    rCont.addEventListener('input', e => {
-      const routine = RoutineModule.getActiveRoutine();
-      if(e.target.classList.contains('ex-name-input')) { clearTimeout(dt); dt = setTimeout(() => { routine[e.target.dataset.ex].name = e.target.value.substring(0,60).trim(); StorageModule.save(); }, 300); }
-      else if(e.target.classList.contains('input-val')) {
-        let val = parseFloat(e.target.value) || 0; const field = e.target.dataset.field;
-        if(field==='rpe' && val>10) { val=10; e.target.value=10; } if(field==='reps' && val>200) { val=200; e.target.value=200; }
-        const r = e.target.closest('.set-row'), exIdx = r.dataset.ex;
-        routine[exIdx].sets[r.dataset.set][field] = val; RoutineModule.updateExStats(routine[exIdx]);
-        clearTimeout(dt); dt = setTimeout(() => StorageModule.save(), 500);
-      }
-    });
-
-    const urlParams = new URLSearchParams(window.location.search), st = urlParams.get('tab');
-    if (st && ['dashboard', 'entreno', 'metas', 'calendario'].includes(st)) UIModule.switchTab(st); else UIModule.switchTab('dashboard'); 
   }
 
-  // EXPORTAMOS PARA QUE HTML LOS ENCUENTRE
-  window.AuthModule = AuthModule;
-  window.UIModule = UIModule;
-  window.RoutineModule = RoutineModule;
-  window.CalendarModule = CalendarModule;
+  return { toast, confirm, openSidebar, closeSidebar, openModal, closeModal, updateAuthUI };
+})();
 
-  document.addEventListener('DOMContentLoaded', () => {
-    StorageModule.load();
-    UIModule.initSplash();
-    UIModule.initQuotes();
-    AuthModule.initListener();
-    initEvents();
-    if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(console.warn));
+/* ─────────────────────────────────────────────
+   XP / STREAK MODULES
+   ───────────────────────────────────────────── */
+const XPModule = (() => {
+  function addXP(amount, leagueAmount = 0) {
+    const s = StateModule.get();
+    s.xp += amount; s.leagueXP += leagueAmount;
+    let lvl = s.level;
+    while (lvl < XP_PER_LEVEL.length - 1 && s.xp >= XP_PER_LEVEL[lvl]) {
+      lvl++; UIModule.toast(`¡Nivel ${lvl} alcanzado! 🎉`, 'success', 3500);
+    }
+    s.level = lvl;
+    if (s.leagueXP >= 2000 && s.league !== 'Leyenda') {
+      const idx = LEAGUES.indexOf(s.league);
+      if (idx < LEAGUES.length - 1) s.league = LEAGUES[idx + 1];
+    }
+    StateModule.save(); DashboardModule.render(); CommunityModule.renderLeague();
+  }
+  function getXPProgress(xp, level) { const current = xp - (XP_PER_LEVEL[level - 1] || 0); const needed = (XP_PER_LEVEL[level] || XP_PER_LEVEL[XP_PER_LEVEL.length - 1]) - (XP_PER_LEVEL[level - 1] || 0); return { current, needed, pct: Math.min(100, Math.round(current / needed * 100)) }; }
+  return { addXP, getXPProgress };
+})();
+
+const StreakModule = (() => {
+  function compute() {
+    const s = StateModule.get(); const allDays = [...new Set([...s.gymDays, ...s.restDays])].sort();
+    if (!allDays.length) return { streak: 0, maxStreak: 0 };
+    let streak = 0, maxStreak = 0, consecutive = 0, restConsecutive = 0; const today = todayStr(); let d = new Date();
+    for (let i = 0; i < 365; i++) {
+      const str = dateToStr(d); const isGym = s.gymDays.includes(str); const isRest = s.restDays.includes(str);
+      if (isGym || isRest) { consecutive++; if (isGym) restConsecutive = 0; else restConsecutive++; if (restConsecutive >= 5) break; } 
+      else { if (str === today) { d.setDate(d.getDate() - 1); continue; } break; }
+      d.setDate(d.getDate() - 1);
+    }
+    streak = consecutive; maxStreak = streak;
+    return { streak, maxStreak };
+  }
+  function todayStr() { return dateToStr(new Date()); }
+  function dateToStr(d) { return d.toISOString().split('T')[0]; }
+  return { compute, todayStr, dateToStr };
+})();
+
+/* ─────────────────────────────────────────────
+   DASHBOARD MODULE
+   ───────────────────────────────────────────── */
+const DashboardModule = (() => {
+  function render() {
+    renderGreeting(); renderWeekStrip(); renderStreak(); renderHabits(); renderGoals();
+  }
+  function getWeekNumber(d) {
+    d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
+    return Math.ceil((((d - new Date(Date.UTC(d.getUTCFullYear(),0,1))) / 86400000) + 1)/7);
+  }
+  function renderGreeting() {
+    const h = new Date().getHours();
+    const greet = h >= 8 && h < 14 ? 'Buenos días' : h >= 14 && h < 22 ? 'Buenas tardes' : 'Buenas noches';
+    document.getElementById('dash-subtitle').textContent = `${greet} · Semana ${getWeekNumber(new Date())}`;
+    
+    if(!window.quoteSet) {
+      document.getElementById('wisdom-quote').textContent = WISDOM[Math.floor(Math.random() * WISDOM.length)];
+      window.quoteSet = true;
+    }
+  }
+  function renderWeekStrip() {
+    const strip = document.getElementById('week-strip');
+    const s = StateModule.get(); const today = new Date(); const todayStr = StreakModule.todayStr();
+    const dayOfWeek = (today.getDay() + 6) % 7; const monday = new Date(today); monday.setDate(today.getDate() - dayOfWeek);
+    strip.innerHTML = ''; const labels = ['L','M','X','J','V','S','D'];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(monday); d.setDate(monday.getDate() + i); const str = StreakModule.dateToStr(d);
+      const isGym = s.gymDays.includes(str); const isRest = s.restDays.includes(str) && !isGym; const isToday = str === todayStr;
+      
+      const el = document.createElement('div');
+      el.className = 'week-day' + (isGym ? ' gym' : '') + (isRest ? ' rest' : '') + (isToday ? ' today' : '');
+      el.innerHTML = `<span class="wd-label">${labels[i]}</span><span class="wd-num">${d.getDate()}</span>`;
+      strip.appendChild(el);
+    }
+  }
+  function renderStreak() {
+    const { streak } = StreakModule.compute(); const s = StateModule.get();
+    const { current, needed, pct } = XPModule.getXPProgress(s.xp, s.level);
+    
+    document.getElementById('streak-label-dash').textContent = streak > 0 ? `¡Llevas ${streak} días de racha!` : 'Empieza hoy tu racha.';
+    document.getElementById('xp-bar').style.width = pct + '%';
+    
+    const xpLabel = document.getElementById('xp-bar-label');
+    if (xpLabel) xpLabel.textContent = `Nivel ${s.level} · ${current} / ${needed} XP`;
+    
+    document.getElementById('sb-level').textContent = `Nivel ${s.level} · ${s.league}`;
+  }
+  function renderHabits() {
+    const s = StateModule.get(); const list = document.getElementById('dash-habits-list'); const todayStr = StreakModule.todayStr();
+    if (!s.tasks.length) { list.innerHTML = '<span class="hint-text">Añade tus tareas diarias en la pestaña Metas.</span>'; return; }
+    list.innerHTML = s.tasks.map((t, i) => {
+      const done = t.completedDates && t.completedDates.includes(todayStr);
+      return `<div class="habit-item"><div class="habit-check ${done ? 'done' : ''}" data-i="${i}"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><span class="habit-name ${done ? 'done' : ''}">${escHtml(t.name)}</span></div>`;
+    }).join('');
+    list.querySelectorAll('.habit-check').forEach(el => { el.addEventListener('click', () => HabitsModule.toggleHabit(+el.dataset.i)); });
+  }
+  function renderGoals() {
+    const s = StateModule.get(); const list = document.getElementById('dash-goals-list');
+    if (!s.goals.length) { list.innerHTML = '<span class="hint-text">Gestiona tus propósitos en la pestaña Metas.</span>'; return; }
+    list.innerHTML = s.goals.map(g => `<div class="habit-item"><div class="habit-check" style="border-radius:6px;border-color:transparent;cursor:default"><svg viewBox="0 0 24 24" stroke="var(--pri)" stroke-width="2" style="opacity:1"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div><span class="habit-name">${escHtml(g.text)}</span></div>`).join('');
+  }
+  function markToday(type) {
+    const s = StateModule.get(); const today = StreakModule.todayStr();
+    if (type === 'gym') {
+      if (!s.gymDays.includes(today)) { s.gymDays.push(today); XPModule.addXP(50, 100); UIModule.toast('+50 XP — ¡Gran trabajo!', 'success'); haptic(); } 
+      else { UIModule.toast('Ya registraste un entreno hoy', 'info'); }
+    } else {
+      if (!s.restDays.includes(today) && !s.gymDays.includes(today)) { s.restDays.push(today); XPModule.addXP(30, 50); UIModule.toast('+30 XP — Descanso registrado', 'info'); haptic(); } 
+      else { UIModule.toast('Ya registraste un día hoy', 'info'); }
+    }
+    StateModule.save(); render(); ConstanciaModule.render();
+  }
+  return { render, markToday };
+})();
+
+/* ─────────────────────────────────────────────
+   HABITS & GOALS MODULE (UNIFIED SCREEN)
+   ───────────────────────────────────────────── */
+const HabitsModule = (() => {
+  function render() {
+    const s = StateModule.get(); const todayStr = StreakModule.todayStr();
+    const list = document.getElementById('habits-list');
+    list.innerHTML = s.tasks.map((t, i) => {
+      const done = t.completedDates && t.completedDates.includes(todayStr);
+      return `<div class="active-item-card"><div class="habit-check ${done ? 'done' : ''}" data-hi="${i}"><svg width="14" height="14" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span class="habit-name ${done ? 'done' : ''}">${escHtml(t.name)}</span><button class="ai-del" data-del-h="${i}"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="var(--text-sec)" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>`;
+    }).join('');
+    list.querySelectorAll('.habit-check').forEach(el => el.addEventListener('click', () => toggleHabit(+el.dataset.hi)));
+    list.querySelectorAll('[data-del-h]').forEach(el => el.addEventListener('click', () => { UIModule.confirm('¿Eliminar tarea?', () => { s.tasks.splice(+el.dataset.delH, 1); StateModule.save(); render(); DashboardModule.render(); }); }));
+  }
+  function toggleHabit(i) {
+    const s = StateModule.get(); const todayStr = StreakModule.todayStr(); const task = s.tasks[i];
+    if (!task.completedDates) task.completedDates = []; const idx = task.completedDates.indexOf(todayStr);
+    if (idx === -1) { task.completedDates.push(todayStr); XPModule.addXP(10, 20); haptic(); } else { task.completedDates.splice(idx, 1); }
+    StateModule.save(); render(); DashboardModule.render();
+  }
+  function addHabit(name) {
+    if (!name.trim()) return;
+    StateModule.get().tasks.push({ name: name.trim(), completedDates: [] }); StateModule.save(); render(); DashboardModule.render(); UIModule.toast('Tarea añadida', 'success');
+  }
+  return { render, addHabit };
+})();
+
+const GoalsModule = (() => {
+  function render() {
+    const s = StateModule.get(); const list = document.getElementById('goals-list');
+    list.innerHTML = s.goals.map((g, i) => `<div class="active-item-card"><div style="flex:1"><div style="font-size:14px;font-weight:700;">${escHtml(g.text)}</div>${g.date ? `<div style="font-size:12px;color:var(--text-sec);margin-top:4px;">Límite: ${formatDate(g.date)}</div>` : ''}</div><button class="ai-del" data-del-g="${i}"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="var(--text-sec)" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>`).join('');
+    list.querySelectorAll('[data-del-g]').forEach(el => el.addEventListener('click', () => { UIModule.confirm('¿Eliminar meta?', () => { s.goals.splice(+el.dataset.delG, 1); StateModule.save(); render(); DashboardModule.render(); }); }));
+  }
+  function addGoal(text, date) {
+    if (!text.trim()) return;
+    StateModule.get().goals.push({ text: text.trim(), date: date || null }); StateModule.save(); render(); DashboardModule.render(); UIModule.toast('Meta añadida', 'success');
+  }
+  return { render, addGoal };
+})();
+
+/* ─────────────────────────────────────────────
+   COMMUNITY & SETTINGS MODULES
+   ───────────────────────────────────────────── */
+const CommunityModule = (() => {
+  function render() { renderLeague(); renderFriends(); }
+  function renderLeague() {
+    const s = StateModule.get();
+    document.getElementById('league-icon').textContent = LEAGUE_ICONS[s.league] || '🥉';
+    document.getElementById('league-name').textContent = `Liga ${s.league}`;
+    const now = new Date(); const daysUntilMon = (8 - now.getDay()) % 7 || 7;
+    document.getElementById('league-sub').textContent = `${daysUntilMon} día${daysUntilMon !== 1 ? 's' : ''} hasta el reinicio`;
+    
+    const users = s.leagueSimulatedUsers.map(u => ({ ...u, isMe: false }));
+    users.push({ name: 'Tú', xp: s.leagueXP, isMe: true });
+    users.sort((a, b) => b.xp - a.xp);
+    
+    document.getElementById('leaderboard').innerHTML = users.map((u, i) => {
+      const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+      const rankStr = i < 3 ? ['🥇', '🥈', '🥉'][i] : `#${i + 1}`;
+      return `<div class="lb-item ${u.isMe ? 'me' : ''}"><div class="lb-rank ${rankClass}">${rankStr}</div><div class="lb-avatar">${(u.name||'U').charAt(0)}</div><div class="lb-name">${escHtml(u.name)}${u.isMe ? ' (tú)' : ''}</div><div class="lb-xp">${u.xp} XP</div></div>`;
+    }).join('');
+  }
+  function renderFriends() {
+    const s = StateModule.get();
+    document.getElementById('friend-code-display').textContent = s.friendCode;
+    const list = document.getElementById('friends-list');
+    if (!s.friends.length) { list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-sec);font-weight:600">Añade amigos con su código</div>'; return; }
+    list.innerHTML = s.friends.map((f, i) => `<div class="friend-item"><div class="fi-avatar">${f.code.charAt(0)}</div><div class="fi-info"><div class="fi-code">${f.code}</div><div class="fi-xp">${f.xp || 0} XP esta semana</div></div><button class="fi-del" data-del="${i}"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="var(--danger)" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>`).join('');
+    list.querySelectorAll('[data-del]').forEach(el => el.addEventListener('click', () => { s.friends.splice(+el.dataset.del, 1); StateModule.save(); renderFriends(); }));
+  }
+  function addFriend(code) {
+    const s = StateModule.get(); code = code.trim().toUpperCase();
+    if (code.length !== 8) { UIModule.toast('Código inválido (8 caracteres)', 'error'); return; }
+    if (code === s.friendCode) { UIModule.toast('Ese es tu propio código', 'error'); return; }
+    if (s.friends.find(f => f.code === code)) { UIModule.toast('Amigo ya añadido', 'info'); return; }
+    s.friends.push({ code, xp: Math.floor(Math.random() * 500) + 50 }); StateModule.save(); renderFriends(); UIModule.toast('Amigo añadido', 'success');
+  }
+  return { render, renderLeague, renderFriends, addFriend };
+})();
+
+const SettingsModule = (() => {
+  function init() {
+    const s = StateModule.get(); const set = s.settings;
+    document.getElementById('weight-unit-select').value = set.weightUnit;
+    document.getElementById('rest-duration-select').value = set.restDuration;
+    document.getElementById('haptics-toggle').checked = set.haptics;
+    document.getElementById('notif-toggle').checked = set.notifications.enabled;
+    document.getElementById('notif-time-input').value = set.notifications.time;
+    document.getElementById('theme-toggle').checked = set.theme === 'dark';
+    document.getElementById('notif-time-row').style.display = set.notifications.enabled ? 'flex' : 'none';
+    applyTheme(set.theme);
+  }
+  function applyTheme(theme) { document.documentElement.setAttribute('data-theme', theme); }
+  function exportData() {
+    const blob = new Blob([JSON.stringify(StateModule.get(), null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob); const a = document.createElement('a');
+    a.href = url; a.download = `zenit_backup_${StreakModule.todayStr()}.json`; a.click(); URL.revokeObjectURL(url);
+  }
+  function importData(file) {
+    const reader = new FileReader();
+    reader.onload = e => { try { StateModule.set(JSON.parse(e.target.result)); renderAll(); UIModule.toast('Importado', 'success'); } catch { UIModule.toast('Archivo inválido', 'error'); } };
+    reader.readAsText(file);
+  }
+  let delTimer = null, delCount = 0;
+  function deleteAllData() {
+    delCount++;
+    if (delCount === 1) { UIModule.toast('Pulsa de nuevo para confirmar', 'error', 3000); delTimer = setTimeout(() => { delCount = 0; }, 3000); }
+    else { clearTimeout(delTimer); delCount = 0; localStorage.removeItem('zenit_state'); StateModule.load(); renderAll(); UIModule.toast('Datos borrados', 'info'); }
+  }
+  return { init, applyTheme, exportData, importData, deleteAllData };
+})();
+
+const EnergyModule = (() => {
+  const FACES = [ { l: 'Exhausto', c: '#E53935' }, { l: 'Cansado', c: '#FB8C00' }, { l: 'Normal', c: '#FDD835' }, { l: 'Energético', c: '#7CB342' }, { l: 'Eufórico', c: '#43A047' } ];
+  function open() {
+    const faces = document.getElementById('energy-faces');
+    faces.innerHTML = FACES.map((f, i) => `<div class="energy-face" data-level="${i}"><svg viewBox="0 0 60 60"><circle cx="30" cy="30" r="28" fill="${f.c}" opacity=".9"/><circle cx="22" cy="24" r="3" fill="#fff"/><circle cx="38" cy="24" r="3" fill="#fff"/>${i === 0 ? `<path d="M20 42 Q30 34 40 42" stroke="#fff" stroke-width="2.5" fill="none"/>` : i === 1 ? `<path d="M20 40 Q30 36 40 40" stroke="#fff" stroke-width="2.5" fill="none"/>` : i === 2 ? `<line x1="20" y1="39" x2="40" y2="39" stroke="#fff" stroke-width="2.5"/>` : i === 3 ? `<path d="M20 38 Q30 44 40 38" stroke="#fff" stroke-width="2.5" fill="none"/>` : `<path d="M18 36 Q30 48 42 36" stroke="#fff" stroke-width="2.5" fill="none"/>`}</svg><span>${f.l}</span></div>`).join('');
+    faces.querySelectorAll('.energy-face').forEach(el => el.addEventListener('click', () => close(+el.dataset.level)));
+    UIModule.openModal('energy-modal');
+  }
+  function close(level) {
+    UIModule.closeModal('energy-modal');
+    if (level !== undefined) { UIModule.toast(`Energía registrada: ${FACES[level].l}`, 'success'); XPModule.addXP(50, 100); }
+  }
+  return { open, close };
+})();
+
+const NotifModule = (() => {
+  async function requestAndSchedule(enabled, time) {
+    if (!enabled) return;
+    if (!('Notification' in window)) { UIModule.toast('No soportado', 'error'); return; }
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') { UIModule.toast('Permiso denegado', 'error'); return; }
+    const s = StateModule.get(); const today = StreakModule.todayStr();
+    const hasTrainedToday = s.gymDays.includes(today) || s.restDays.includes(today);
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) { navigator.serviceWorker.controller.postMessage({ type: 'SCHEDULE_NOTIFICATION', time, hasTrainedToday }); }
+    UIModule.toast('Recordatorio configurado', 'success');
+  }
+  return { requestAndSchedule };
+})();
+
+/* ─────────────────────────────────────────────
+   ROUTINE MODULE
+   ───────────────────────────────────────────── */
+const RoutineModule = (() => {
+  let currentEditorIndex = -1, editorMode = 'days', restTimerInterval = null, restSeconds = 0;
+
+  function renderDayList() {
+    const s = StateModule.get(); const list = document.getElementById('routine-days-view');
+    list.innerHTML = s.weeklyRoutine.map((d, i) => `
+      <div class="routine-list-item" data-day="${i}">
+        <span class="rli-name">${d.day}</span>
+        <span class="rli-status ${d.exercises.length ? 'rutina' : 'descanso'}">${d.exercises.length ? 'Rutina >' : 'Descanso >'}</span>
+      </div>`).join('');
+    list.querySelectorAll('.routine-list-item').forEach(el => el.addEventListener('click', () => openEditor(+el.dataset.day, 'days')));
+  }
+  function renderGroupList() {
+    const s = StateModule.get(); const list = document.getElementById('routine-groups-view');
+    list.innerHTML = s.muscleRoutine.map((g, i) => `
+      <div class="routine-list-item" data-group="${i}">
+        <span class="rli-name">${escHtml(g.name)}</span>
+        <span class="rli-status ${g.exercises.length ? 'rutina' : 'descanso'}">${g.exercises.length ? 'Rutina >' : 'Descanso >'}</span>
+      </div>`).join('');
+    list.querySelectorAll('.routine-list-item').forEach(el => el.addEventListener('click', () => openEditor(+el.dataset.group, 'groups')));
+  }
+  
+  function openEditor(idx, mode) {
+    currentEditorIndex = idx; editorMode = mode;
+    const s = StateModule.get(); const item = mode === 'days' ? s.weeklyRoutine[idx] : s.muscleRoutine[idx];
+    document.getElementById('editor-title').textContent = item.day || item.name;
+    const editor = document.getElementById('routine-editor'); editor.style.display = 'flex'; requestAnimationFrame(() => editor.classList.add('open'));
+    renderExercises(item.exercises);
+  }
+  function closeEditor() { const editor = document.getElementById('routine-editor'); editor.classList.remove('open'); setTimeout(() => { editor.style.display = 'none'; }, 350); stopRestTimer(); }
+  function getCurrentItem() { return editorMode === 'days' ? StateModule.get().weeklyRoutine[currentEditorIndex] : StateModule.get().muscleRoutine[currentEditorIndex]; }
+
+  function renderExercises(exercises) {
+    const list = document.getElementById('exercise-list'); const s = StateModule.get();
+    list.innerHTML = exercises.map((ex, ei) => {
+      const history = s.exerciseHistory[ex.name];
+      const lastStr = history && history.length ? `Última vez: ${formatDate(history[history.length - 1].date)}` : 'Sin historial aún';
+      const sets = ex.sets.map((set, si) => `
+        <div class="set-row ${set.done ? 'done' : ''}">
+          <div class="set-num">${si + 1}</div>
+          <input class="set-input" type="number" value="${set.weight}" data-field="weight" data-ei="${ei}" data-si="${si}"/>
+          <input class="set-input" type="number" value="${set.reps}" data-field="reps" data-ei="${ei}" data-si="${si}"/>
+          <select class="rpe-select" data-field="rpe" data-ei="${ei}" data-si="${si}">${[6,7,7.5,8,8.5,9,9.5,10].map(r => `<option ${set.rpe == r ? 'selected' : ''}>${r}</option>`).join('')}</select>
+          <div class="set-check ${set.done ? 'done' : ''}" data-ei="${ei}" data-si="${si}"><svg width="14" height="14" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="set-del" data-ei="${ei}" data-si="${si}"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="var(--text-sec)" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>`).join('');
+      return `<div class="exercise-card"><div class="exercise-header"><div class="ex-name">${escHtml(ex.name)}</div><div class="ex-actions"><button class="ex-action-btn danger" data-del-ex="${ei}"><svg width="14" height="14" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="var(--danger)" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div></div><div class="ex-history">${lastStr}</div><div class="sets-header"><span>#</span><span style="text-align:center">Peso</span><span style="text-align:center">Reps</span><span>RPE</span><span></span></div>${sets}<button class="add-set-btn" data-ei="${ei}"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg> Añadir serie</button></div>`;
+    }).join('');
+    bindEditorEvents(); updateVolume();
+  }
+
+  function bindEditorEvents() {
+    const list = document.getElementById('exercise-list');
+    list.querySelectorAll('.set-input,.rpe-select').forEach(input => { input.addEventListener('change', e => { const { ei, si, field } = e.target.dataset; const set = getCurrentItem().exercises[+ei].sets[+si]; set[field] = parseFloat(e.target.value) || 0; StateModule.save(); updateVolume(); }); });
+    list.querySelectorAll('.set-check').forEach(el => { el.addEventListener('click', () => { const ei = +el.dataset.ei, si = +el.dataset.si; const item = getCurrentItem(); const set = item.exercises[ei].sets[si]; set.done = !set.done; StateModule.save(); renderExercises(item.exercises); if (set.done) { haptic(); startRestTimer(); } }); });
+    list.querySelectorAll('.set-del').forEach(el => { el.addEventListener('click', () => { const ei = +el.dataset.ei, si = +el.dataset.si; const item = getCurrentItem(); item.exercises[ei].sets.splice(si, 1); StateModule.save(); renderExercises(item.exercises); }); });
+    list.querySelectorAll('.add-set-btn').forEach(btn => { btn.addEventListener('click', () => { const ei = +btn.dataset.ei; const item = getCurrentItem(); const lastSet = item.exercises[ei].sets.slice(-1)[0]; item.exercises[ei].sets.push({ weight: lastSet ? lastSet.weight : 0, reps: lastSet ? lastSet.reps : 10, rpe: lastSet ? lastSet.rpe : 8, done: false }); StateModule.save(); renderExercises(item.exercises); }); });
+    list.querySelectorAll('[data-del-ex]').forEach(btn => { btn.addEventListener('click', () => { const ei = +btn.dataset.delEx; UIModule.confirm('¿Eliminar este ejercicio?', () => { const item = getCurrentItem(); item.exercises.splice(ei, 1); StateModule.save(); renderExercises(item.exercises); }); }); });
+  }
+
+  function updateVolume() {
+    const item = getCurrentItem(); const s = StateModule.get(); let total = 0;
+    item.exercises.forEach(ex => { ex.sets.forEach(set => { if (set.done) total += (set.weight || 0) * (set.reps || 0); }); });
+    document.getElementById('vol-value').textContent = `${total.toFixed(0)} ${s.settings.weightUnit}`;
+  }
+
+  function saveRoutine() {
+    const item = getCurrentItem(); const s = StateModule.get(); const today = StreakModule.todayStr();
+    item.exercises.forEach(ex => {
+      const doneSets = ex.sets.filter(set => set.done);
+      if (doneSets.length) {
+        if (!s.exerciseHistory[ex.name]) s.exerciseHistory[ex.name] = [];
+        const best = doneSets.reduce((b, c) => (c.weight * c.reps > b.weight * b.reps ? c : b));
+        s.exerciseHistory[ex.name].push({ date: today, weight: best.weight, reps: best.reps });
+        if (!s.recentExercises.includes(ex.name)) { s.recentExercises.unshift(ex.name); if (s.recentExercises.length > 5) s.recentExercises.pop(); }
+      }
+    });
+    if (!s.gymDays.includes(today)) { s.gymDays.push(today); XPModule.addXP(50, 100); }
+    StateModule.save(); EnergyModule.open(); DashboardModule.render(); ConstanciaModule.render();
+  }
+
+  function startRestTimer() {
+    const s = StateModule.get(); restSeconds = s.settings.restDuration; stopRestTimer();
+    const el = document.getElementById('rest-timer'); el.classList.add('show'); updateRestDisplay();
+    restTimerInterval = setInterval(() => { restSeconds--; updateRestDisplay(); if (restSeconds <= 0) { stopRestTimer(); haptic(); UIModule.toast('¡Descanso terminado!', 'info'); } }, 1000);
+  }
+  function stopRestTimer() { if (restTimerInterval) clearInterval(restTimerInterval); document.getElementById('rest-timer').classList.remove('show'); }
+  function updateRestDisplay() { const m = Math.floor(restSeconds / 60), s = restSeconds % 60; document.getElementById('rest-countdown').textContent = `${m}:${s.toString().padStart(2, '0')}`; }
+
+  function render() { renderDayList(); renderGroupList(); }
+  return { render, openEditor, closeEditor, saveRoutine, stopRestTimer };
+})();
+
+const ExerciseSheetModule = (() => {
+  let activeFilter = 'Todos';
+  function open() {
+    renderChips(); renderExercises();
+    document.getElementById('exercise-sheet-overlay').classList.add('open');
+    const sheet = document.getElementById('exercise-sheet'); sheet.style.display = 'flex'; requestAnimationFrame(() => sheet.classList.add('open'));
+  }
+  function close() { document.getElementById('exercise-sheet-overlay').classList.remove('open'); const sheet = document.getElementById('exercise-sheet'); sheet.classList.remove('open'); setTimeout(() => { sheet.style.display = ''; }, 350); }
+  function renderChips() {
+    const wrap = document.getElementById('filter-chips');
+    wrap.innerHTML = MUSCLE_FILTERS.map(f => `<div class="chip ${f === activeFilter ? 'active' : ''}" data-filter="${f}">${f}</div>`).join('');
+    wrap.querySelectorAll('.chip').forEach(c => { c.addEventListener('click', () => { activeFilter = c.dataset.filter; renderChips(); renderExercises(); }); });
+  }
+  function renderExercises() {
+    const s = StateModule.get(); const query = (document.getElementById('ex-search').value || '').toLowerCase(); const container = document.getElementById('sheet-exercises');
+    let html = '';
+    const filtered = EXERCISE_DB.filter(e => (activeFilter === 'Todos' || e.muscle === activeFilter) && (!query || e.name.toLowerCase().includes(query)));
+    const groups = {}; filtered.forEach(e => { if (!groups[e.muscle]) groups[e.muscle] = []; groups[e.muscle].push(e); });
+    Object.entries(groups).forEach(([muscle, exs]) => {
+      if (activeFilter === 'Todos') html += `<div class="ex-group-title">${muscle}</div>`;
+      exs.forEach(e => { html += `<div class="ex-list-item" data-name="${escHtml(e.name)}"><div class="eli-name">${escHtml(e.name)}</div><svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="var(--pri)" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg></div>`; });
+    });
+    if (!filtered.length) html = '<div style="padding:20px;text-align:center;color:var(--text-sec);">No se encontraron ejercicios</div>';
+    container.innerHTML = html;
+    container.querySelectorAll('.ex-list-item').forEach(el => { el.addEventListener('click', () => { addExercise(el.dataset.name); close(); }); });
+  }
+  function addExercise(name) {
+    const s = StateModule.get(); const editorTitle = document.getElementById('editor-title').textContent;
+    const dayIdx = s.weeklyRoutine.findIndex(d => d.day === editorTitle); const groupIdx = s.muscleRoutine.findIndex(g => g.name === editorTitle);
+    let targetExercises; if (dayIdx >= 0) targetExercises = s.weeklyRoutine[dayIdx].exercises; else if (groupIdx >= 0) targetExercises = s.muscleRoutine[groupIdx].exercises; else return;
+    targetExercises.push({ name, sets: [{ weight: 0, reps: 10, rpe: 8, done: false }] });
+    if (!s.recentExercises.includes(name)) { s.recentExercises.unshift(name); if (s.recentExercises.length > 5) s.recentExercises.pop(); }
+    StateModule.save(); RoutineModule.openEditor(dayIdx >= 0 ? dayIdx : groupIdx, dayIdx >= 0 ? 'days' : 'groups'); UIModule.toast(`${name} añadido`, 'success');
+  }
+  function openCustomModal() { close(); UIModule.openModal('custom-ex-modal'); document.getElementById('custom-ex-input').value = ''; }
+  return { open, close, renderExercises, openCustomModal };
+})();
+
+/* ─────────────────────────────────────────────
+   CONSTANCIA MODULE
+   ───────────────────────────────────────────── */
+const ConstanciaModule = (() => {
+  let viewYear, viewMonth;
+  function init() { const now = new Date(); viewYear = now.getFullYear(); viewMonth = now.getMonth(); }
+  function render() {
+    const s = StateModule.get(); const now = new Date();
+    document.getElementById('month-title').textContent = `${MONTHS[viewMonth]} ${viewYear}`;
+    const firstDay = new Date(viewYear, viewMonth, 1); const lastDay = new Date(viewYear, viewMonth + 1, 0);
+    const startDow = (firstDay.getDay() + 6) % 7; const grid = document.getElementById('month-grid'); grid.innerHTML = '';
+
+    for (let i = 0; i < startDow; i++) { const el = document.createElement('div'); el.className = 'month-day empty'; grid.appendChild(el); }
+    for (let d = 1; d <= lastDay.getDate(); d++) {
+      const date = new Date(viewYear, viewMonth, d); const str = StreakModule.dateToStr(date);
+      const isGym = s.gymDays.includes(str); const isRest = s.restDays.includes(str) && !isGym; const isToday = str === StreakModule.todayStr();
+      const el = document.createElement('div');
+      el.className = 'month-day' + (isGym ? ' gym' : '') + (isRest ? ' rest' : '') + (isToday ? ' today' : '');
+      el.textContent = d; grid.appendChild(el);
+    }
+    const { streak, maxStreak } = StreakModule.compute();
+    document.getElementById('stat-total').textContent = s.gymDays.length;
+    document.getElementById('stat-streak').textContent = maxStreak;
+  }
+  function prevMonth() { viewMonth--; if (viewMonth < 0) { viewMonth = 11; viewYear--; } render(); }
+  function nextMonth() { viewMonth++; if (viewMonth > 11) { viewMonth = 0; viewYear++; } render(); }
+  return { init, render, prevMonth, nextMonth };
+})();
+
+/* ─────────────────────────────────────────────
+   UTILITIES & BINDINGS
+   ───────────────────────────────────────────── */
+function escHtml(str) { return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function formatDate(str) { if (!str) return ''; const [y, m, d] = str.split('-'); return `${d}/${m}/${y}`; }
+function haptic() { if (StateModule.get().settings.haptics && navigator.vibrate) navigator.vibrate(50); }
+
+function renderAll() { DashboardModule.render(); RoutineModule.render(); HabitsModule.render(); GoalsModule.render(); ConstanciaModule.render(); SettingsModule.init(); CommunityModule.render(); }
+
+const NavModule = (() => {
+  function init() { document.querySelectorAll('.nav-item').forEach(item => { item.addEventListener('click', () => navigateTo(item.dataset.page)); }); }
+  function navigateTo(page) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById(`page-${page}`).classList.add('active');
+    document.querySelector(`.nav-item[data-page="${page}"]`).classList.add('active');
+    document.getElementById('main-content').scrollTop = 0;
+  }
+  return { init, navigateTo };
+})();
+
+function bindEvents() {
+  document.getElementById('avatar-btn').addEventListener('click', UIModule.openSidebar);
+  document.getElementById('sidebar-overlay').addEventListener('click', UIModule.closeSidebar);
+  
+  // Modals & Sidebar
+  document.getElementById('open-community').addEventListener('click', () => { UIModule.closeSidebar(); CommunityModule.render(); UIModule.openModal('modal-community'); });
+  document.getElementById('open-settings-menu').addEventListener('click', () => { UIModule.closeSidebar(); SettingsModule.init(); UIModule.openModal('modal-settings'); });
+  document.getElementById('close-community').addEventListener('click', () => UIModule.closeModal('modal-community'));
+  document.getElementById('close-settings').addEventListener('click', () => UIModule.closeModal('modal-settings'));
+
+  document.querySelectorAll('.comm-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.comm-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.comm-pane').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active'); document.getElementById(`pane-${tab.dataset.pane}`).classList.add('active');
+    });
   });
 
-})();
+  document.getElementById('copy-code-btn').addEventListener('click', () => { navigator.clipboard.writeText(StateModule.get().friendCode).then(() => UIModule.toast('Copiado', 'success')); });
+  document.getElementById('add-friend-btn').addEventListener('click', () => { CommunityModule.addFriend(document.getElementById('friend-code-input').value); document.getElementById('friend-code-input').value = ''; });
+
+  // Settings Events
+  document.getElementById('weight-unit-select').addEventListener('change', e => { StateModule.saveField('settings.weightUnit', e.target.value); });
+  document.getElementById('rest-duration-select').addEventListener('change', e => { StateModule.saveField('settings.restDuration', +e.target.value); });
+  document.getElementById('haptics-toggle').addEventListener('change', e => { StateModule.saveField('settings.haptics', e.target.checked); });
+  document.getElementById('theme-toggle').addEventListener('change', e => { const t = e.target.checked ? 'dark' : 'light'; StateModule.saveField('settings.theme', t); SettingsModule.applyTheme(t); });
+  document.getElementById('notif-toggle').addEventListener('change', async e => { StateModule.saveField('settings.notifications.enabled', e.target.checked); document.getElementById('notif-time-row').style.display = e.target.checked ? 'flex' : 'none'; if(e.target.checked) NotifModule.requestAndSchedule(true, document.getElementById('notif-time-input').value); });
+  document.getElementById('export-data-btn').addEventListener('click', SettingsModule.exportData);
+  document.getElementById('import-data-btn').addEventListener('click', () => document.getElementById('import-file-input').click());
+  document.getElementById('import-file-input').addEventListener('change', e => { if(e.target.files[0]) SettingsModule.importData(e.target.files[0]); });
+  document.getElementById('delete-data-btn').addEventListener('click', SettingsModule.deleteAllData);
+  
+  // Dashboard Actions
+  document.getElementById('btn-trained').addEventListener('click', () => DashboardModule.markToday('gym'));
+  document.getElementById('btn-rest').addEventListener('click', () => DashboardModule.markToday('rest'));
+  
+  // Metas Actions
+  document.getElementById('habit-add-btn').addEventListener('click', () => { HabitsModule.addHabit(document.getElementById('habit-input').value); document.getElementById('habit-input').value = ''; });
+  document.getElementById('goal-add-btn').addEventListener('click', () => { GoalsModule.addGoal(document.getElementById('goal-input').value, document.getElementById('goal-date-input').value); document.getElementById('goal-input').value = ''; document.getElementById('goal-date-input').value = ''; });
+  
+  // Rutina Editor & Toggle
+  document.getElementById('view-days').addEventListener('click', () => { document.getElementById('view-days').classList.add('active'); document.getElementById('view-groups').classList.remove('active'); document.getElementById('routine-days-view').style.display = 'block'; document.getElementById('routine-groups-view').style.display = 'none'; });
+  document.getElementById('view-groups').addEventListener('click', () => { document.getElementById('view-groups').classList.add('active'); document.getElementById('view-days').classList.remove('active'); document.getElementById('routine-days-view').style.display = 'none'; document.getElementById('routine-groups-view').style.display = 'block'; });
+  document.getElementById('editor-back').addEventListener('click', () => RoutineModule.closeEditor());
+  document.getElementById('save-routine-btn').addEventListener('click', () => RoutineModule.saveRoutine());
+  document.getElementById('add-exercise-btn').addEventListener('click', () => ExerciseSheetModule.open());
+  document.getElementById('exercise-sheet-overlay').addEventListener('click', () => ExerciseSheetModule.close());
+  document.getElementById('ex-search').addEventListener('input', () => ExerciseSheetModule.renderExercises());
+  document.getElementById('sheet-custom-btn').addEventListener('click', () => ExerciseSheetModule.openCustomModal());
+  
+  document.getElementById('custom-ex-confirm').addEventListener('click', () => {
+    const name = document.getElementById('custom-ex-input').value.trim(); if (!name) return;
+    UIModule.closeModal('custom-ex-modal'); EXERCISE_DB.push({ name, muscle: 'Personalizado' });
+    const s = StateModule.get(); const editorTitle = document.getElementById('editor-title').textContent;
+    const dayIdx = s.weeklyRoutine.findIndex(d => d.day === editorTitle); const groupIdx = s.muscleRoutine.findIndex(g => g.name === editorTitle);
+    if (dayIdx >= 0) s.weeklyRoutine[dayIdx].exercises.push({ name, sets: [{ weight: 0, reps: 10, rpe: 8, done: false }] });
+    else if (groupIdx >= 0) s.muscleRoutine[groupIdx].exercises.push({ name, sets: [{ weight: 0, reps: 10, rpe: 8, done: false }] });
+    StateModule.save(); RoutineModule.openEditor(dayIdx >= 0 ? dayIdx : groupIdx, dayIdx >= 0 ? 'days' : 'groups'); UIModule.toast(`${name} añadido`, 'success');
+  });
+
+  document.getElementById('skip-rest-btn').addEventListener('click', () => RoutineModule.stopRestTimer());
+
+  // Constancia
+  document.getElementById('prev-month').addEventListener('click', () => ConstanciaModule.prevMonth());
+  document.getElementById('next-month').addEventListener('click', () => ConstanciaModule.nextMonth());
+
+  // Intervalo ligas
+  setInterval(() => {
+    const s = StateModule.get();
+    s.leagueSimulatedUsers.forEach(u => { u.xp += Math.floor(Math.random() * 20); });
+    StateModule.save();
+  }, 60000 * 30);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  StateModule.load();
+  ConstanciaModule.init();
+  UIModule.updateAuthUI(null);
+  bindEvents(); NavModule.init();
+  renderAll();
+  setTimeout(() => { document.getElementById('splash').classList.add('hidden'); document.getElementById('app').style.display = 'flex'; }, 1600);
+});
