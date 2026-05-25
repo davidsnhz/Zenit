@@ -12,7 +12,7 @@
 <link rel="apple-touch-icon" href="logo.png"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800;900&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Lato:wght@900&family=Montserrat:wght@400;500;600;650;700;750;800;850;900&display=swap" rel="stylesheet"/>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -60,10 +60,14 @@ body {
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior: none;
 }
+h1, h2, h3, .ph-title, .section-title {
+  font-family: 'Lato', sans-serif !important;
+  font-weight: 900 !important; /* 900 es el grosor "Black" */
+}
 button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
 input, select, textarea { font-family: inherit; }
 img { max-width: 100%; display: block; }
-svg { flex-shrink: 0; } /* Previene que los iconos se estiren */
+svg { flex-shrink: 0; }
 
 /* ============================================================
    SPLASH SCREEN (DUOLINGO STYLE)
@@ -79,11 +83,6 @@ svg { flex-shrink: 0; } /* Previene que los iconos se estiren */
 .splash-logo-container {
   display: flex; flex-direction: column; align-items: center; gap: 16px;
   animation: splashBounce 1.2s infinite ease-in-out alternate;
-}
-#splash img { width: 110px; height: 110px; object-fit: contain; }
-#splash h1 {
-  font-size: 38px; font-weight: 900; letter-spacing: 4px; color: var(--pri);
-  margin: 0;
 }
 .splash-progress-wrapper {
   position: absolute; bottom: 60px;
@@ -129,15 +128,48 @@ svg { flex-shrink: 0; } /* Previene que los iconos se estiren */
   position: relative; z-index: 100;
 }
 .nav-item {
-  display: flex; flex-direction: column; align-items: center;
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
   gap: 4px; padding: 8px 16px; border-radius: 20px;
   transition: background var(--trans), color var(--trans);
-  cursor: pointer; min-width: 64px;
+  cursor: pointer; height: 60px; transition: transform 0.2s ease;
 }
 .nav-item svg { width: 22px; height: 22px; stroke: var(--text-sec); fill: none; stroke-linecap: round; stroke-linejoin: round; transition: stroke var(--trans); }
 .nav-item span { font-size: 11px; font-weight: 700; color: var(--text-sec); transition: color var(--trans); }
 .nav-item.active svg { stroke: var(--pri); }
 .nav-item.active span { color: var(--pri); }
+/* Estilos para el icono de imagen del menú inferior */
+/* Estilos para el icono de imagen del menú inferior */
+.nav-img-icon {
+  width: 28px; /* Igualado al tamaño de los demás iconos */
+  height: 28px; /* Igualado al tamaño de los demás iconos */
+  object-fit: contain;
+  display: block; /* Esto elimina el espacio fantasma de debajo */
+  transition: all var(--trans);
+  opacity: 0.5;
+  filter: grayscale(100%);
+}
+
+/* Estado activo: Todo el color original y 100% visible */
+.nav-item.active .nav-img-icon, 
+.nav-item.active svg {
+  opacity: 1;
+  filter: grayscale(0%);
+  transition: transform 0.2s ease;
+  transform: translateY(-4px) scale(1.1); /* Sube un poco y crece un 10% */
+}
+
+/* El texto siempre igual */
+.nav-item span {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-sec);
+}
+.nav-item.active span {
+  color: var(--pri);
+}
+.nav-item.active svg {
+  stroke: var(--pri);
+}
 
 /* ============================================================
    PAGES / VIEWS & HEADERS
@@ -146,7 +178,7 @@ svg { flex-shrink: 0; } /* Previene que los iconos se estiren */
 .page.active { display: block; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
-.page-header { padding: 24px 16px 16px; }
+.page-header { padding: 28px 16px 16px; }
 .ph-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
 .ph-subtitle { font-size: 14px; color: var(--text-sec); font-weight: 600; }
 .ph-title { font-size: 28px; font-weight: 900; letter-spacing: 1px; color: var(--pri); text-transform: uppercase; }
@@ -155,7 +187,7 @@ svg { flex-shrink: 0; } /* Previene que los iconos se estiren */
   width: 38px; height: 38px; border-radius: 50%;
   background: var(--surface2); border: 1px solid var(--border);
   display: flex; align-items: center; justify-content: center;
-  font-weight: 800; font-size: 15px; overflow: hidden; flex-shrink: 0; color: var(--text-pri);
+  font-weight: 800; font-size: 15px; overflow: hidden; flex-shrink: 0; color: var(--text-pri); transform: translateY(20px);
 }
 #avatar-btn img { width: 100%; height: 100%; object-fit: cover; }
 
@@ -169,8 +201,8 @@ svg { flex-shrink: 0; } /* Previene que los iconos se estiren */
 /* Buttons */
 .btn-primary-large {
   width: 100%; background: var(--pri); color: #fff;
-  padding: 14px 16px; border-radius: var(--radius-sm);
-  font-size: 14px; font-weight: 800; text-transform: uppercase;
+  padding: 12px 16px; border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 800; text-transform: uppercase;
   display: flex; align-items: center; justify-content: center; gap: 8px;
   transition: opacity .2s; margin-top: 8px;
 }
@@ -188,23 +220,23 @@ svg { flex-shrink: 0; } /* Previene que los iconos se estiren */
 
 .dw-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
 .dw-actions { display: flex; gap: 8px; }
-.dw-btn-outline { border: 1.5px solid var(--text-sec); background: transparent; color: var(--text-pri); font-size: 10px; font-weight: 900; padding: 6px 12px; border-radius: 20px; text-transform: uppercase; }
-.dw-btn-fill { background: var(--pri); color: #fff; border: none; font-size: 10px; font-weight: 900; padding: 6px 12px; border-radius: 20px; text-transform: uppercase; }
+.dw-btn-outline { border: 1.5px solid var(--text-sec); background: transparent; color: var(--text-pri); font-size: 10px; font-weight: 750; padding: 6px 12px; border-radius: 20px; text-transform: uppercase; }
+.dw-btn-fill { background: var(--pri); color: #fff; border: none; font-size: 10px; font-weight: 750; padding: 6px 12px; border-radius: 20px; text-transform: uppercase; }
 
-.week-strip { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.week-strip { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
 .week-day { display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .wd-label { font-size: 12px; font-weight: 800; color: var(--text-sec); text-transform: uppercase; }
 .wd-num { 
   width: 38px; height: 38px; border-radius: 50%; 
   display: flex; align-items: center; justify-content: center; 
-  font-size: 15px; font-weight: 900; 
+  font-size: 15px; font-weight: 700; 
   background: transparent; border: 1.5px solid transparent; 
   color: var(--text-pri);
 }
 .week-day.gym .wd-num { background: var(--pri); color: #fff; }
 .week-day.today:not(.gym) .wd-num { border-color: var(--text-sec); }
 
-.dw-streak-text { text-align: center; font-size: 14px; font-weight: 800; color: var(--sec); margin-top: 12px; }
+.dw-streak-text { text-align: center; font-size: 14px; font-weight: 800; color: var(--sec); margin-top: 10px; }
 
 /* Habit & Goals Lists */
 .hint-text { font-size: 13px; color: var(--text-sec); font-weight: 500; }
@@ -238,8 +270,8 @@ svg { flex-shrink: 0; } /* Previene que los iconos se estiren */
   cursor: pointer; border: 1px solid var(--border); transition: border-color 0.2s;
 }
 .routine-list-item:active { border-color: var(--pri); }
-.rli-name { font-size: 18px; font-weight: 900; color: var(--text-pri); }
-.rli-status { font-size: 14px; font-weight: 700; color: var(--text-sec); }
+.rli-name { font-size: 18px; font-weight: 700; color: var(--text-pri); }
+.rli-status { font-size: 14px; font-weight: 500; color: var(--text-sec); }
 .rli-status.rutina { color: var(--text-pri); }
 
 /* ============================================================
@@ -282,7 +314,7 @@ svg { flex-shrink: 0; } /* Previene que los iconos se estiren */
 .month-grid-days { display: grid; grid-template-columns: repeat(7,1fr); gap: 6px; }
 .month-day {
   aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
-  border-radius: 10px; font-size: 14px; font-weight: 800; color: var(--text-pri);
+  border-radius: 10px; font-size: 14px; font-weight: 700; color: var(--text-pri);
   background: var(--bg); border: 1.5px solid var(--border); transition: all 0.2s;
 }
 .month-day.gym { background: var(--pri); border-color: var(--pri); color: #fff; }
@@ -290,7 +322,7 @@ svg { flex-shrink: 0; } /* Previene que los iconos se estiren */
 .month-day.empty { opacity: 0; pointer-events: none; }
 
 .calendar-legend { display: flex; justify-content: center; gap: 20px; margin-top: 24px; }
-.legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--text-pri); }
+.legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 660; color: var(--text-pri); }
 .legend-box { width: 16px; height: 16px; border-radius: 4px; }
 .legend-box.fill { background: var(--pri); }
 .legend-box.outline { border: 1.5px solid var(--pri); }
@@ -328,7 +360,7 @@ svg { flex-shrink: 0; } /* Previene que los iconos se estiren */
 .sidebar-menu { padding: 12px; flex: 1; }
 .sidebar-item { display: flex; align-items: center; gap: 14px; padding: 14px; border-radius: var(--radius-sm); font-size: 15px; font-weight: 700; cursor: pointer; transition: background .2s; }
 .sidebar-item:hover { background: var(--surface2); }
-.sidebar-item svg { width: 20px; height: 20px; stroke: var(--text-sec); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.sidebar-item svg { width: 20px; height: 20px; stroke: var(--text-sec); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
 .sidebar-auth { padding: 16px; border-top: 1px solid var(--border); }
 .auth-btn { width: 100%; padding: 12px; border-radius: var(--radius-sm); background: var(--pri); color: #fff; font-size: 14px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px; }
 .auth-btn svg { width: 18px; height: 18px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
@@ -434,8 +466,25 @@ svg { flex-shrink: 0; } /* Previene que los iconos se estiren */
 #energy-card { background: var(--surface); border-radius: 24px 24px 0 0; width: 100%; padding: 24px 20px 40px; animation: slideUp .35s cubic-bezier(.4,0,.2,1); }
 #energy-card h3 { font-size: 22px; font-weight: 900; text-align: center; margin-bottom: 8px; }
 #energy-card p { font-size: 14px; color: var(--text-sec); text-align: center; margin-bottom: 24px; font-weight: 600; }
-.energy-faces { display: flex; justify-content: space-around; }
-.energy-face { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px; border-radius: var(--radius); cursor: pointer; transition: background .2s; }
+.energy-faces {
+  display: flex;
+  justify-content: center; /* Centra todo el grupo en el medio */
+  gap: 15px;               /* Espacio entre cada icono */
+  flex-wrap: wrap;         /* Permite que si no caben, bajen a la siguiente fila */
+  margin-top: 20px;
+}
+
+.energy-face {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background .2s;
+  width: 60px; /* Ancho fijo para que todos ocupen lo mismo */
+}
 .energy-face:active { background: var(--pri-dim); }
 .energy-face svg { width: 48px; height: 48px; }
 .energy-face span { font-size: 11px; font-weight: 800; color: var(--text-sec); }
@@ -472,10 +521,10 @@ svg { flex-shrink: 0; } /* Previene que los iconos se estiren */
 .set-del { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 .set-del svg { width: 16px; height: 16px; stroke: var(--text-sec); fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
 
-/* Tamaños de botones corregidos - Añadir Serie y Ejercicio */
+/* Botones estandarizados en Rutina */
 .add-set-btn { margin: 8px 16px 16px; padding: 10px; border: 1px dashed var(--border); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; font-weight: 800; color: var(--text-sec); cursor: pointer; }
 .add-set-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
-.add-exercise-btn { margin: 12px 16px; background: var(--pri-dim); border: 1.5px solid var(--pri); border-radius: var(--radius-sm); padding: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; font-weight: 800; color: var(--pri); cursor: pointer; }
+.add-exercise-btn { margin: 12px 16px; background: var(--pri-dim); border: 1.5px solid var(--pri); border-radius: var(--radius-sm); padding: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; font-weight: 800; color: var(--pri); cursor: pointer; }
 .add-exercise-btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
 
 .volume-bar { background: var(--surface); border-top: 1px solid var(--border); padding: 16px; display: flex; align-items: center; gap: 8px; position: sticky; bottom: 0; }
@@ -532,8 +581,7 @@ svg { flex-shrink: 0; } /* Previene que los iconos se estiren */
 
 <div id="splash">
   <div class="splash-logo-container">
-    <img src="logo.png" alt="Zenit" onerror="this.style.display='none'"/>
-    <h1>ZENIT</h1>
+    <img src="logoblanco.png" alt="Zenit" onerror="this.style.display='none'" style="width: 200px; height: auto;"/>
   </div>
   <div class="splash-progress-wrapper">
     <div class="splash-progress-fill"></div>
@@ -552,7 +600,7 @@ svg { flex-shrink: 0; } /* Previene que los iconos se estiren */
             <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
           </button>
         </div>
-        <h1 class="ph-title">ZENIT</h1>
+        <img src="logoblanco.png" alt="Zenit" style="height: 35px; width: auto; margin-top: 4px;"/>
       </div>
 
       <div class="card quote-card">
@@ -574,7 +622,8 @@ svg { flex-shrink: 0; } /* Previene que los iconos se estiren */
             <button id="btn-trained" class="dw-btn-fill">ENTRENÉ HOY</button>
           </div>
         </div>
-        <div class="week-strip" id="week-strip"></div>
+        <div class="week-strip" id="week-strip">
+          </div>
         <div class="dw-streak-text" id="streak-label-dash">Empieza hoy tu racha.</div>
       </div>
 
@@ -676,7 +725,7 @@ svg { flex-shrink: 0; } /* Previene que los iconos se estiren */
 
   <nav id="bottom-nav">
     <div class="nav-item active" data-page="dashboard">
-      <svg viewBox="0 0 24 24" stroke="currentColor" fill="none"><path d="M5 6h14L5 18h14" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <img src="logo peque.png" alt="Inicio" class="nav-img-icon" />
       <span>Inicio</span>
     </div>
     <div class="nav-item" data-page="routine">
@@ -758,7 +807,7 @@ svg { flex-shrink: 0; } /* Previene que los iconos se estiren */
       </div>
       <div class="friend-add-row">
         <input class="stacked-input" style="margin:0; flex:1;" id="friend-code-input" placeholder="Código (8 chars)..." maxlength="8"/>
-        <button class="btn-square-add" id="add-friend-btn">
+        <button class="btn-square-add" id="add-friend-btn" style="width: 48px; height: 48px;">
           <svg viewBox="0 0 24 24" width="24" height="24"><line x1="12" y1="5" x2="12" y2="19" stroke="white" stroke-width="2.5" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>
         </button>
       </div>
@@ -857,10 +906,12 @@ svg { flex-shrink: 0; } /* Previene que los iconos se estiren */
     <button class="save-routine-btn" id="save-routine-btn">Guardar</button>
   </div>
   <div id="exercise-list" style="flex:1;overflow-y:auto;padding:8px 0"></div>
+  
   <button class="add-exercise-btn" id="add-exercise-btn">
     <svg width="18" height="18" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg> 
     Añadir Ejercicio
   </button>
+  
   <div class="volume-bar"><span class="vol-label">Volumen total</span><span class="vol-value" id="vol-value">0 kg</span></div>
 </div>
 
