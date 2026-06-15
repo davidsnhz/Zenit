@@ -5,12 +5,12 @@
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#121212",
+  "background_color": "#000000",
   "theme_color": "#FF5B00",
   "icons": [
     { "src": "logo.png", "sizes": "192x192", "type": "image/png" },
     { "src": "logo.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ],
-  "categories": ["fitness", "health", "lifestyle"],
+  "categories": ["fitness", "health", "lifestyle", "productivity"],
   "lang": "es"
 }

@@ -1,24 +1,22 @@
 /* ============================================================
-   ZENIT – Service Worker v3.0 (Versión de fuerza bruta)
+   ZENIT – Service Worker v7.0 (Actualización UI)
    ============================================================ */
-const CACHE_NAME = 'zenit-v3'; // Cambiado a v3 para forzar renovación
+const CACHE_NAME = 'zenit-v7'; 
 const ASSETS = [ '/', '/index.html', '/app.js', '/manifest.json', '/logo.png', '/logoblanco.png', '/logo peque.png' ];
 
 self.addEventListener('install', e => {
-  self.skipWaiting(); // Obliga a reemplazar al anterior
+  self.skipWaiting(); 
   e.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS)));
 });
 
 self.addEventListener('activate', e => {
-  // BORRADO TOTAL Y AGRESIVO DE CUALQUIER CACHÉ ANTERIOR
   e.waitUntil(
     caches.keys().then(keys => Promise.all(keys.map(key => caches.delete(key))))
-    .then(() => self.clients.claim()) // Toma control de todas las pestañas
+    .then(() => self.clients.claim())
   );
 });
 
 self.addEventListener('fetch', e => {
-  // Estrategia: Network First para index.html y app.js para evitar este problema
   if (e.request.url.includes('index.html') || e.request.url.includes('app.js')) {
     e.respondWith(
       fetch(e.request).then(response => {
