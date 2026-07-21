@@ -7,8 +7,13 @@
    FIREBASE CONFIG
    ───────────────────────────────────────────── */
 const FIREBASE_CONFIG = {
-  apiKey: "TU_API_KEY", authDomain: "TU_AUTH_DOMAIN", projectId: "TU_PROJECT_ID",
-  storageBucket: "TU_STORAGE_BUCKET", messagingSenderId: "TU_MESSAGING_SENDER_ID", appId: "TU_APP_ID"
+  apiKey: "AIzaSyBT3VAJmPW04PCM5pSSMWj7ADuEt354nIc",
+  authDomain: "zenit-f3228.firebaseapp.com",
+  projectId: "zenit-f3228",
+  storageBucket: "zenit-f3228.firebasestorage.app",
+  messagingSenderId: "260560043233",
+  appId: "1:260560043233:web:8401db84fd24d0121c0ba0",
+  measurementId: "G-6WBZBZVSHP"
 };
 
 /* ─────────────────────────────────────────────
