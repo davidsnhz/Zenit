@@ -2,21 +2,51 @@
 <html lang="es" data-theme="dark">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
-<meta name="theme-color" content="#FF5B00"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
+<meta name="theme-color" content="#121212" media="(prefers-color-scheme: dark)"/>
+<meta name="theme-color" content="#F5F5F5" media="(prefers-color-scheme: light)"/>
+<meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Zenit"/>
-<title>Zenit</title>
+
+<title>Zenit – Tu Mejor Versión</title>
+<meta name="description" content="Zenit es tu ecosistema para alcanzar tu mejor versión: entrena, construye hábitos, mantén la constancia y enfócate con Pomodoro. Todo en una sola app."/>
+<meta name="author" content="Zenit"/>
+
+<!-- Open Graph / redes sociales -->
+<meta property="og:type" content="website"/>
+<meta property="og:site_name" content="Zenit"/>
+<meta property="og:title" content="Zenit – Tu Mejor Versión"/>
+<meta property="og:description" content="Entrena, construye hábitos y mantén la constancia. Tu ecosistema para alcanzar tu mejor versión."/>
+<meta property="og:image" content="icon-512.png"/>
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Zenit – Tu Mejor Versión"/>
+<meta name="twitter:description" content="Entrena, construye hábitos y mantén la constancia. Tu ecosistema para alcanzar tu mejor versión."/>
+<meta name="twitter:image" content="icon-512.png"/>
+
 <link rel="manifest" href="manifest.json"/>
-<link rel="apple-touch-icon" href="logo.png"/>
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png"/>
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png"/>
+<link rel="apple-touch-icon" href="apple-touch-icon.png"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Lato:wght@900&family=Montserrat:wght@400;500;600;650;700;750;800;850;900&display=swap" rel="stylesheet"/>
 
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script>
+/* Aplica el tema guardado antes del primer pintado para evitar el parpadeo de tema */
+(function () {
+  try {
+    var st = JSON.parse(localStorage.getItem('zenit_state') || '{}');
+    var t = st && st.settings && st.settings.theme;
+    if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+
+<script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <style>
 /* ============================================================
@@ -65,6 +95,7 @@ svg { flex-shrink: 0; }
    ============================================================ */
 #splash { position: fixed; inset: 0; z-index: 9999; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity .4s ease, visibility .4s ease; }
 #splash.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+#splash.hidden .splash-logo-container, #splash.hidden .splash-progress-fill { animation: none; }
 .splash-logo-container { display: flex; flex-direction: column; align-items: center; gap: 16px; animation: splashBounce 1.2s infinite ease-in-out alternate; }
 .splash-progress-wrapper { position: absolute; bottom: 60px; width: 65%; max-width: 300px; height: 18px; background: var(--surface2); border-radius: 20px; overflow: hidden; }
 .splash-progress-fill { height: 100%; width: 0; background: var(--pri); border-radius: 20px; animation: splashFill 1.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; box-shadow: inset 0 4px 0 rgba(255,255,255,0.25); }
@@ -83,7 +114,7 @@ svg { flex-shrink: 0; }
 .nav-item.active { background: #FFFFFF; }
 .nav-item.active svg { stroke: var(--nav-bg); transform: scale(1.08); }
 .nav-img-icon { width: 24px; height: 24px; object-fit: contain; display: block; filter: brightness(0) invert(1); opacity: .45; transition: all var(--trans); }
-.nav-item.active .nav-img-icon { opacity: 1; filter: none; transform: scale(1.08); }
+.nav-item.active .nav-img-icon { opacity: 1; filter: brightness(0); transform: scale(1.08); }
 
 /* ============================================================
    PAGES / VIEWS & HEADERS
@@ -114,6 +145,21 @@ svg { flex-shrink: 0; }
 .xp-bar-label { font-size: 12px; color: var(--text-sec); margin-top: 8px; font-weight: 700; text-align: left; }
 .dw-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
 .dw-actions { display: flex; gap: 8px; }
+
+/* Widgets motivadores: Día + Racha (media anchura cada uno) */
+.dash-duo { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 16px; margin-bottom: 16px; }
+.dash-duo .card { margin: 0; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.tp-title { font-size: 11px; font-weight: 800; letter-spacing: 1px; color: var(--text-sec); text-transform: uppercase; margin-bottom: 10px; }
+.tp-ring-wrap { position: relative; width: 76px; height: 76px; margin: 0 auto 8px; }
+.tp-ring { width: 76px; height: 76px; transform: rotate(-90deg); }
+.tp-ring-track { fill: none; stroke: var(--surface2); stroke-width: 8; }
+.tp-ring-fill { fill: none; stroke: url(#tp-grad); stroke-width: 8; stroke-linecap: round; stroke-dasharray: 163.36; stroke-dashoffset: 163.36; transition: stroke-dashoffset .8s cubic-bezier(.4,0,.2,1); }
+.tp-ring-center { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+.tp-ring-center span { font-size: 18px; font-weight: 900; color: var(--text-pri); font-variant-numeric: tabular-nums; }
+.tp-detail { font-size: 11px; font-weight: 600; color: var(--text-sec); margin-top: auto; }
+.streak-flame { font-size: 40px; line-height: 1; margin: 2px 0 4px; }
+.streak-num { font-size: 30px; font-weight: 900; color: var(--sec); line-height: 1; font-variant-numeric: tabular-nums; }
+.streak-sub { font-size: 11px; font-weight: 600; color: var(--text-sec); margin-top: 6px; }
 
 /* Animación manual compartida */
 @keyframes popIn { 0% { transform: scale(1); } 50% { transform: scale(1.15); } 100% { transform: scale(1); } }
@@ -435,6 +481,32 @@ svg { flex-shrink: 0; }
         <div class="xp-bar-label" id="xp-bar-label">Nivel 1 · 0 / 500 XP</div>
       </div>
 
+      <div class="dash-duo">
+        <div class="card today-progress-card">
+          <div class="tp-title">Tu día hoy</div>
+          <div class="tp-ring-wrap">
+            <svg class="tp-ring" viewBox="0 0 60 60">
+              <defs>
+                <linearGradient id="tp-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="var(--pri)"/>
+                  <stop offset="100%" stop-color="var(--sec)"/>
+                </linearGradient>
+              </defs>
+              <circle class="tp-ring-track" cx="30" cy="30" r="26"/>
+              <circle class="tp-ring-fill" id="tp-ring-fill" cx="30" cy="30" r="26"/>
+            </svg>
+            <div class="tp-ring-center"><span id="tp-pct">0%</span></div>
+          </div>
+          <div class="tp-detail" id="tp-detail">0 de 1 completado</div>
+        </div>
+        <div class="card streak-card">
+          <div class="tp-title">Racha</div>
+          <div class="streak-flame">🔥</div>
+          <div class="streak-num" id="streak-num">0</div>
+          <div class="streak-sub" id="streak-sub">días seguidos · máx 0</div>
+        </div>
+      </div>
+
       <div class="card dash-week-card">
         <div class="dw-header">
           <span class="section-title" style="margin:0;">ESTA SEMANA</span>
@@ -444,7 +516,6 @@ svg { flex-shrink: 0; }
           </div>
         </div>
         <div class="week-strip" id="week-strip"></div>
-        <div class="dw-streak-text" id="streak-label-dash">Empieza hoy tu racha.</div>
       </div>
 
       <div class="card dash-list-card">

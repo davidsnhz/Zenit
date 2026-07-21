@@ -50,7 +50,7 @@ const SIMULATED_USERS = [
    ───────────────────────────────────────────── */
 function defaultState() {
   return {
-    schemaVersion: SCHEMA_VERSION, level: 1, xp: 0,
+    schemaVersion: SCHEMA_VERSION, level: 1, xp: 0, maxStreak: 0,
     leagueXP: 0, league: 'Bronce',
     friendCode: generateCode(), friends: [],
     leagueSimulatedUsers: SIMULATED_USERS.map(u => ({ ...u, xp: Math.floor(Math.random() * 600) + 50 })),
@@ -116,8 +116,10 @@ const FirebaseModule = (() => {
       auth.onAuthStateChanged(user => { currentUser = user; UIModule.updateAuthUI(user); });
     } catch (e) { console.warn('Firebase no disponible:', e.message); }
   }
+  function isConfigured() { return FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.apiKey !== 'TU_API_KEY'; }
   async function loginWithGoogle() {
-    if (!auth) { UIModule.toast('Firebase no configurado', 'error'); return; }
+    if (!isConfigured()) { UIModule.toast('El inicio de sesión estará disponible próximamente', 'info', 3200); return; }
+    if (!auth) { UIModule.toast('Autenticación no disponible', 'error'); return; }
     try { const provider = new firebase.auth.GoogleAuthProvider(); await auth.signInWithPopup(provider); } catch (e) { UIModule.toast('Error al iniciar sesión', 'error'); }
   }
   async function logout() { if (!auth) return; try { await auth.signOut(); currentUser = null; UIModule.updateAuthUI(null); UIModule.toast('Sesión cerrada', 'info'); } catch (e) { UIModule.toast('Error al cerrar', 'error'); } }
@@ -187,19 +189,47 @@ const StreakModule = (() => {
       else { if (str === today) { d.setDate(d.getDate() - 1); continue; } break; }
       d.setDate(d.getDate() - 1);
     }
-    streak = consecutive; maxStreak = Math.max(streak, maxStreak);
+    streak = consecutive;
+    maxStreak = Math.max(streak, s.maxStreak || 0);
+    if (maxStreak !== (s.maxStreak || 0)) { s.maxStreak = maxStreak; StateModule.save(); }
     return { streak, maxStreak };
   }
   function todayStr() { return dateToStr(new Date()); }
-  function dateToStr(d) { return d.toISOString().split('T')[0]; }
-  return { compute, todayStr, dateToStr };
+  function dateToStr(d) {
+    // Fecha LOCAL (no UTC): toISOString desfasaba el día en zonas horarias
+    // como España cerca de medianoche, corrompiendo rachas y mapa de calor.
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+  function parseDate(str) {
+    // Interpreta "YYYY-MM-DD" como fecha local (new Date(str) la trataría como UTC).
+    const [y, m, d] = String(str).split('-').map(Number);
+    return new Date(y, (m || 1) - 1, d || 1);
+  }
+  return { compute, todayStr, dateToStr, parseDate };
 })();
 
 /* ─────────────────────────────────────────────
    DASHBOARD MODULE
    ───────────────────────────────────────────── */
 const DashboardModule = (() => {
-  function render() { renderGreeting(); renderWeekStrip(); renderStreak(); renderHabits(); renderGoals(); }
+  function render() { renderGreeting(); renderTodayProgress(); renderWeekStrip(); renderStreak(); renderHabits(); renderGoals(); }
+  function renderTodayProgress() {
+    const s = StateModule.get(); const today = StreakModule.todayStr();
+    const tasksDone = s.tasks.filter(t => t.completedDates && t.completedDates.includes(today)).length;
+    const trained = (s.gymDays.includes(today) || s.restDays.includes(today)) ? 1 : 0;
+    const total = s.tasks.length + 1; // +1 = registrar tu día
+    const done = tasksDone + trained;
+    const pct = Math.min(100, Math.round((done / total) * 100));
+    const CIRC = 2 * Math.PI * 26; // ~163.36
+    const fill = document.getElementById('tp-ring-fill');
+    if (fill) fill.style.strokeDashoffset = (CIRC - (CIRC * pct / 100)).toFixed(2);
+    const pctEl = document.getElementById('tp-pct'); if (pctEl) pctEl.textContent = pct + '%';
+    const detEl = document.getElementById('tp-detail');
+    if (detEl) detEl.textContent = `${done} de ${total} completado${total === 1 ? '' : 's'}`;
+  }
   function getWeekNumber(d) { d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7)); return Math.ceil((((d - new Date(Date.UTC(d.getUTCFullYear(),0,1))) / 86400000) + 1)/7); }
   function renderGreeting() {
     const h = new Date().getHours(); const greet = h >= 8 && h < 14 ? 'Buenos días' : h >= 14 && h < 22 ? 'Buenas tardes' : 'Buenas noches';
@@ -218,8 +248,9 @@ const DashboardModule = (() => {
     }
   }
   function renderStreak() {
-    const { streak } = StreakModule.compute(); const s = StateModule.get(); const { current, needed, pct } = XPModule.getXPProgress(s.xp, s.level);
-    document.getElementById('streak-label-dash').textContent = streak > 0 ? `¡Llevas ${streak} días de racha!` : 'Empieza hoy tu racha.';
+    const { streak, maxStreak } = StreakModule.compute(); const s = StateModule.get(); const { current, needed, pct } = XPModule.getXPProgress(s.xp, s.level);
+    const streakNum = document.getElementById('streak-num'); if (streakNum) streakNum.textContent = streak;
+    const streakSub = document.getElementById('streak-sub'); if (streakSub) streakSub.textContent = `${streak === 1 ? 'día seguido' : 'días seguidos'} · máx ${maxStreak}`;
     document.getElementById('xp-bar').style.width = pct + '%';
     const xpLabel = document.getElementById('xp-bar-label'); if (xpLabel) xpLabel.textContent = `Nivel ${s.level} · ${current} / ${needed} XP`;
     document.getElementById('sb-level').textContent = `Nivel ${s.level} · ${s.league}`;
@@ -342,7 +373,7 @@ const PomodoroModule = (() => {
   }
   function completeTimer() {
     pause(); haptic();
-    if ('Notification' in window && Notification.permission === 'granted') { new Notification('¡Tiempo terminado!', { body: currentDuration === 5 * 60 ? 'El descanso ha terminado. ¡A trabajar!' : 'Tu pomodoro ha terminado. Tómate un descanso.', icon: 'logo.png' }); }
+    if ('Notification' in window && Notification.permission === 'granted') { new Notification('¡Tiempo terminado!', { body: currentDuration === 5 * 60 ? 'El descanso ha terminado. ¡A trabajar!' : 'Tu pomodoro ha terminado. Tómate un descanso.', icon: 'icon-192.png' }); }
     UIModule.toast('¡Tiempo terminado!', 'success');
     if (currentDuration !== 5 * 60) { document.getElementById('pomo-break-opts').style.display = 'flex'; }
   }
@@ -447,7 +478,12 @@ const NotifModule = (() => {
     if (perm !== 'granted') { UIModule.toast('Permiso denegado', 'error'); return; }
     const s = StateModule.get(); const today = StreakModule.todayStr();
     const hasTrainedToday = s.gymDays.includes(today) || s.restDays.includes(today);
-    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) { navigator.serviceWorker.controller.postMessage({ type: 'SCHEDULE_NOTIFICATION', time, hasTrainedToday }); }
+    if ('serviceWorker' in navigator) {
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        (reg.active || navigator.serviceWorker.controller)?.postMessage({ type: 'SCHEDULE_NOTIFICATION', time, hasTrainedToday });
+      } catch (e) { /* SW no disponible todavía */ }
+    }
     UIModule.toast('Recordatorio configurado', 'success');
   }
   return { requestAndSchedule };
@@ -648,7 +684,7 @@ const ConstanciaModule = (() => {
 
     /* ---- RESUMEN DE LOS ÚLTIMOS MESES ---- */
     const monthIdx = now.getMonth(), yearNow = now.getFullYear();
-    const currentMonthGymCount = s.gymDays.filter(str => { const d = new Date(str); return d.getMonth() === monthIdx && d.getFullYear() === yearNow; }).length;
+    const currentMonthGymCount = s.gymDays.filter(str => { const d = StreakModule.parseDate(str); return d.getMonth() === monthIdx && d.getFullYear() === yearNow; }).length;
     document.getElementById('ms-checkins').textContent = `${currentMonthGymCount} entrenamiento${currentMonthGymCount === 1 ? '' : 's'}`;
 
     // Obtener información de los últimos 6 meses
@@ -659,7 +695,7 @@ const ConstanciaModule = (() => {
 
     const counts = pastMonths.map(mDate => {
       return s.gymDays.filter(str => {
-          const d = new Date(str);
+          const d = StreakModule.parseDate(str);
           return d.getMonth() === mDate.getMonth() && d.getFullYear() === mDate.getFullYear();
       }).length;
     });
@@ -714,6 +750,12 @@ const NavModule = (() => {
 function bindEvents() {
   document.getElementById('avatar-btn').addEventListener('click', UIModule.openSidebar);
   document.getElementById('sidebar-overlay').addEventListener('click', UIModule.closeSidebar);
+
+  // Login / Logout (antes el botón no tenía ningún handler)
+  document.getElementById('login-btn').addEventListener('click', function () {
+    if (this.dataset.action === 'logout') FirebaseModule.logout();
+    else FirebaseModule.loginWithGoogle();
+  });
   
   // Modals & Sidebar
   document.getElementById('open-community').addEventListener('click', () => { UIModule.closeSidebar(); CommunityModule.render(); UIModule.openModal('modal-community'); });
@@ -805,10 +847,18 @@ function bindEvents() {
 document.addEventListener('DOMContentLoaded', () => {
   StateModule.load();
   ConstanciaModule.init();
-  TooltipModule.init(); 
+  TooltipModule.init();
   PomodoroModule.init();
   UIModule.updateAuthUI(null);
+  FirebaseModule.init();
   bindEvents(); NavModule.init();
   renderAll();
   setTimeout(() => { document.getElementById('splash').classList.add('hidden'); document.getElementById('app').style.display = 'flex'; }, 1600);
 });
+
+// Registro del Service Worker (antes no se registraba: la PWA y el modo offline nunca funcionaban)
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(err => console.warn('SW no registrado:', err));
+  });
+}
