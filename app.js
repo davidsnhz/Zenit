@@ -50,7 +50,7 @@ const SIMULATED_USERS = [
    ───────────────────────────────────────────── */
 function defaultState() {
   return {
-    schemaVersion: SCHEMA_VERSION, level: 1, xp: 0, maxStreak: 0,
+    schemaVersion: SCHEMA_VERSION, level: 1, xp: 0, maxStreak: 0, updatedAt: 0,
     leagueXP: 0, league: 'Bronce',
     friendCode: generateCode(), friends: [],
     leagueSimulatedUsers: SIMULATED_USERS.map(u => ({ ...u, xp: Math.floor(Math.random() * 600) + 50 })),
@@ -74,12 +74,19 @@ const StateModule = (() => {
     catch { state = defaultState(); }
     return state;
   }
-  function save() { try { localStorage.setItem('zenit_state', JSON.stringify(state)); } catch (e) { UIModule.toast('Error al guardar', 'error'); } }
+  function save() {
+    try {
+      state.updatedAt = Date.now();
+      localStorage.setItem('zenit_state', JSON.stringify(state));
+      if (typeof FirebaseModule !== 'undefined') FirebaseModule.scheduleSync();
+    } catch (e) { UIModule.toast('Error al guardar', 'error'); }
+  }
   function get() { return state; }
   function set(updates) { Object.assign(state, updates); save(); }
+  function replace(newState) { state = deepMerge(defaultState(), newState || {}); save(); }
   function saveField(path, value) { const keys = path.split('.'); let obj = state; for (let i = 0; i < keys.length - 1; i++) { obj = obj[keys[i]]; } obj[keys[keys.length - 1]] = value; save(); }
   function deepMerge(target, source) { const out = { ...target }; for (const key in source) { if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) { out[key] = deepMerge(target[key] || {}, source[key]); } else { out[key] = source[key]; } } return out; }
-  return { load, save, get, set, saveField };
+  return { load, save, get, set, replace, saveField };
 })();
 
 /* ─────────────────────────────────────────────
@@ -108,22 +115,57 @@ const TooltipModule = (() => {
    FIREBASE & UI MODULE
    ───────────────────────────────────────────── */
 const FirebaseModule = (() => {
-  let app, auth, db, currentUser = null;
+  let auth = null, db = null, currentUser = null, syncTimer = null;
+  function isConfigured() { return FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.apiKey !== 'TU_API_KEY'; }
   function init() {
+    if (!isConfigured()) return; // sin config, la app funciona en local sin tocar nada
     try {
-      if (FIREBASE_CONFIG.apiKey === 'TU_API_KEY') return;
-      app = firebase.initializeApp(FIREBASE_CONFIG); auth = firebase.auth(); db = firebase.firestore();
-      auth.onAuthStateChanged(user => { currentUser = user; UIModule.updateAuthUI(user); });
+      firebase.initializeApp(FIREBASE_CONFIG); auth = firebase.auth(); db = firebase.firestore();
+      auth.onAuthStateChanged(async user => {
+        currentUser = user; UIModule.updateAuthUI(user);
+        if (user) await onLogin(user);
+      });
     } catch (e) { console.warn('Firebase no disponible:', e.message); }
   }
-  function isConfigured() { return FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.apiKey !== 'TU_API_KEY'; }
+  async function onLogin(user) {
+    if (!db) return;
+    try {
+      const ref = db.collection('users').doc(user.uid);
+      const snap = await ref.get();
+      const local = StateModule.get();
+      if (snap.exists && snap.data().state) {
+        const cloud = snap.data().state;
+        // Última escritura gana: usamos la versión más reciente por marca de tiempo
+        if ((cloud.updatedAt || 0) > (local.updatedAt || 0)) {
+          StateModule.replace(cloud); renderAll();
+          UIModule.toast('Progreso sincronizado', 'success');
+          return;
+        }
+      }
+      await pushNow(); // no había datos en la nube, o los locales son más recientes
+    } catch (e) { console.warn('Error de sincronización:', e.message); }
+  }
+  async function pushNow() {
+    if (!db || !currentUser) return;
+    try {
+      const s = StateModule.get();
+      await db.collection('users').doc(currentUser.uid).set({ state: s, updatedAt: s.updatedAt || Date.now() }, { merge: true });
+    } catch (e) { console.warn('Error al subir datos:', e.message); }
+  }
+  function scheduleSync() {
+    if (!db || !currentUser) return;
+    clearTimeout(syncTimer); syncTimer = setTimeout(pushNow, 1500);
+  }
   async function loginWithGoogle() {
     if (!isConfigured()) { UIModule.toast('El inicio de sesión estará disponible próximamente', 'info', 3200); return; }
     if (!auth) { UIModule.toast('Autenticación no disponible', 'error'); return; }
     try { const provider = new firebase.auth.GoogleAuthProvider(); await auth.signInWithPopup(provider); } catch (e) { UIModule.toast('Error al iniciar sesión', 'error'); }
   }
-  async function logout() { if (!auth) return; try { await auth.signOut(); currentUser = null; UIModule.updateAuthUI(null); UIModule.toast('Sesión cerrada', 'info'); } catch (e) { UIModule.toast('Error al cerrar', 'error'); } }
-  return { init, loginWithGoogle, logout };
+  async function logout() {
+    if (!auth) return;
+    try { await pushNow(); await auth.signOut(); currentUser = null; UIModule.updateAuthUI(null); UIModule.toast('Sesión cerrada', 'info'); } catch (e) { UIModule.toast('Error al cerrar', 'error'); }
+  }
+  return { init, loginWithGoogle, logout, scheduleSync, isConfigured };
 })();
 
 const UIModule = (() => {
@@ -853,7 +895,12 @@ document.addEventListener('DOMContentLoaded', () => {
   FirebaseModule.init();
   bindEvents(); NavModule.init();
   renderAll();
-  setTimeout(() => { document.getElementById('splash').classList.add('hidden'); document.getElementById('app').style.display = 'flex'; }, 1600);
+  setTimeout(() => {
+    const splash = document.getElementById('splash');
+    splash.classList.add('hidden');
+    document.getElementById('app').style.display = 'flex';
+    setTimeout(() => { splash.style.display = 'none'; }, 500);
+  }, 1600);
 });
 
 // Registro del Service Worker (antes no se registraba: la PWA y el modo offline nunca funcionaban)
