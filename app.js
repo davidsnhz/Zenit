@@ -216,7 +216,7 @@ const XPModule = (() => {
     const s = StateModule.get();
     s.xp += amount; s.leagueXP += leagueAmount;
     let lvl = s.level;
-    while (lvl < XP_PER_LEVEL.length - 1 && s.xp >= XP_PER_LEVEL[lvl]) { lvl++; UIModule.toast(`¡Nivel ${lvl} alcanzado! 🎉`, 'success', 3500); }
+    while (lvl < XP_PER_LEVEL.length - 1 && s.xp >= XP_PER_LEVEL[lvl]) { lvl++; UIModule.toast(`Has alcanzado el nivel ${lvl}`, 'success', 3200); }
     s.level = lvl;
     if (s.leagueXP >= 2000 && s.league !== 'Leyenda') { const idx = LEAGUES.indexOf(s.league); if (idx < LEAGUES.length - 1) s.league = LEAGUES[idx + 1]; }
     StateModule.save(); DashboardModule.render(); CommunityModule.renderLeague();
@@ -262,74 +262,103 @@ const StreakModule = (() => {
    DASHBOARD MODULE
    ───────────────────────────────────────────── */
 const DashboardModule = (() => {
-  function render() { renderGreeting(); renderTodayProgress(); renderWeekStrip(); renderStreak(); renderHabits(); renderGoals(); }
-  function renderTodayProgress() {
-    const s = StateModule.get(); const today = StreakModule.todayStr();
-    const tasksDone = s.tasks.filter(t => t.completedDates && t.completedDates.includes(today)).length;
-    const trained = (s.gymDays.includes(today) || s.restDays.includes(today)) ? 1 : 0;
-    const total = s.tasks.length + 1; // +1 = registrar tu día
-    const done = tasksDone + trained;
-    const pct = Math.min(100, Math.round((done / total) * 100));
-    const CIRC = 2 * Math.PI * 26; // ~163.36
-    const fill = document.getElementById('tp-ring-fill');
-    if (fill) fill.style.strokeDashoffset = (CIRC - (CIRC * pct / 100)).toFixed(2);
-    const pctEl = document.getElementById('tp-pct'); if (pctEl) pctEl.textContent = pct + '%';
-    const detEl = document.getElementById('tp-detail');
-    if (detEl) detEl.textContent = `${done} de ${total} completado${total === 1 ? '' : 's'}`;
+  const DAYNAMES = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
+  function todayIndex() { return (new Date().getDay() + 6) % 7; }
+  function muscleOf(name) { const e = EXERCISE_DB.find(x => x.name === name); return e ? e.muscle : null; }
+  function formatShort(str) { const d = StreakModule.parseDate(str); return `${MONTHS_SHORT[d.getMonth()]} ${d.getFullYear()}`; }
+
+  function render() { renderDate(); renderToday(); renderMetrics(); renderTasks(); renderGoals(); renderSidebarLevel(); }
+
+  function renderDate() {
+    const el = document.getElementById('home-date'); if (!el) return;
+    const d = new Date();
+    el.textContent = `${DAYNAMES[todayIndex()]}, ${d.getDate()} de ${MONTHS[d.getMonth()].toLowerCase()}`;
   }
-  function getWeekNumber(d) { d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7)); return Math.ceil((((d - new Date(Date.UTC(d.getUTCFullYear(),0,1))) / 86400000) + 1)/7); }
-  function renderGreeting() {
-    const h = new Date().getHours(); const greet = h >= 8 && h < 14 ? 'Buenos días' : h >= 14 && h < 22 ? 'Buenas tardes' : 'Buenas noches';
-    document.getElementById('dash-subtitle').textContent = `${greet} · Semana ${getWeekNumber(new Date())} del año`;
-    if(!window.quoteSet) { document.getElementById('wisdom-quote').textContent = WISDOM[Math.floor(Math.random() * WISDOM.length)]; window.quoteSet = true; }
-  }
-  function renderWeekStrip() {
-    const strip = document.getElementById('week-strip'); const s = StateModule.get(); const today = new Date(); const todayStr = StreakModule.todayStr();
-    const dayOfWeek = (today.getDay() + 6) % 7; const monday = new Date(today); monday.setDate(today.getDate() - dayOfWeek);
-    strip.innerHTML = ''; const labels = ['L','M','X','J','V','S','D'];
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(monday); d.setDate(monday.getDate() + i); const str = StreakModule.dateToStr(d);
-      const isGym = s.gymDays.includes(str); const isRest = s.restDays.includes(str) && !isGym; const isToday = str === todayStr;
-      const el = document.createElement('div'); el.className = 'week-day' + (isGym ? ' gym' : '') + (isRest ? ' rest' : '') + (isToday ? ' today' : '');
-      el.innerHTML = `<span class="wd-label">${labels[i]}</span><span class="wd-num">${d.getDate()}</span>`; strip.appendChild(el);
+
+  function renderToday() {
+    const s = StateModule.get(); const idx = todayIndex(); const day = s.weeklyRoutine[idx];
+    const routineEl = document.getElementById('home-routine');
+    const subEl = document.getElementById('home-sub');
+    const exCard = document.getElementById('home-ex-card');
+    const cta = document.getElementById('home-cta');
+    if (!routineEl || !cta) return;
+    const today = StreakModule.todayStr();
+    const trainedToday = s.gymDays.includes(today);
+    const restedToday = s.restDays.includes(today);
+
+    if (day.exercises.length) {
+      const muscles = [...new Set(day.exercises.map(e => muscleOf(e.name)).filter(Boolean))];
+      routineEl.textContent = muscles.length ? muscles.slice(0, 3).join(', ') : 'Entrenamiento de hoy';
+      const n = day.exercises.length;
+      const mins = Math.max(15, Math.round(n * 8 / 5) * 5);
+      subEl.textContent = `${n} ${n === 1 ? 'ejercicio' : 'ejercicios'} · ~${mins} min`;
+      const preview = day.exercises.slice(0, 3).map(ex => {
+        const sets = ex.sets || []; const first = sets[0];
+        const detail = first && first.weight > 0
+          ? `${sets.length} × ${first.reps} · ${first.weight} ${s.settings.weightUnit}`
+          : `${sets.length} ${sets.length === 1 ? 'serie' : 'series'}`;
+        return `<div class="exrow"><span class="exname">${escHtml(ex.name)}</span><span class="exdetail">${detail}</span></div>`;
+      }).join('');
+      const moreCount = n - 3;
+      exCard.innerHTML = preview + (moreCount > 0 ? `<div class="exmore">+ ${moreCount} más</div>` : '');
+      cta.textContent = trainedToday ? 'Ver entreno' : 'Empezar entreno';
+      cta.className = trainedToday ? 'home-cta ghost' : 'home-cta';
+      cta.onclick = () => RoutineModule.openEditor(idx, 'days');
+    } else {
+      routineEl.textContent = 'Descanso';
+      subEl.textContent = restedToday ? 'Descanso registrado' : (trainedToday ? 'Entreno registrado' : 'Hoy toca descansar');
+      exCard.innerHTML = '';
+      if (restedToday) { cta.textContent = 'Descanso registrado'; cta.className = 'home-cta ghost'; cta.onclick = null; }
+      else if (trainedToday) { cta.textContent = 'Ver entreno'; cta.className = 'home-cta ghost'; cta.onclick = () => RoutineModule.openEditor(idx, 'days'); }
+      else { cta.textContent = 'Marcar descanso'; cta.className = 'home-cta ghost'; cta.onclick = () => markToday('rest'); }
     }
   }
-  function renderStreak() {
-    const { streak, maxStreak } = StreakModule.compute(); const s = StateModule.get(); const { current, needed, pct } = XPModule.getXPProgress(s.xp, s.level);
-    const streakNum = document.getElementById('streak-num'); if (streakNum) streakNum.textContent = streak;
-    const streakSub = document.getElementById('streak-sub'); if (streakSub) streakSub.textContent = `${streak === 1 ? 'día seguido' : 'días seguidos'} · máx ${maxStreak}`;
-    document.getElementById('xp-bar').style.width = pct + '%';
-    const xpLabel = document.getElementById('xp-bar-label'); if (xpLabel) xpLabel.textContent = `Nivel ${s.level} · ${current} / ${needed} XP`;
-    document.getElementById('sb-level').textContent = `Nivel ${s.level} · ${s.league}`;
+
+  function renderMetrics() {
+    const s = StateModule.get(); const now = new Date();
+    const monday = new Date(now); monday.setHours(0, 0, 0, 0);
+    monday.setDate(monday.getDate() - ((now.getDay() + 6) % 7));
+    const week = s.gymDays.filter(str => StreakModule.parseDate(str) >= monday).length;
+    const month = s.gymDays.filter(str => { const d = StreakModule.parseDate(str); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); }).length;
+    const { streak } = StreakModule.compute();
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    set('m-week', week); set('m-month', month); set('m-streak', `${streak} d`);
   }
-  function renderHabits() {
-    const s = StateModule.get(); const list = document.getElementById('dash-habits-list'); const todayStr = StreakModule.todayStr();
-    if (!s.tasks.length) { list.innerHTML = '<span class="hint-text">Añade tus tareas diarias en la pestaña Metas.</span>'; return; }
+
+  function renderTasks() {
+    const s = StateModule.get(); const list = document.getElementById('dash-habits-list'); const today = StreakModule.todayStr();
+    if (!s.tasks.length) { list.innerHTML = '<span class="hint-text">Añade tus tareas en la pestaña Metas.</span>'; return; }
     list.innerHTML = s.tasks.map((t, i) => {
-      const done = t.completedDates && t.completedDates.includes(todayStr);
-      return `<div class="habit-item" data-i="${i}"><div class="habit-check ${done ? 'done' : ''}"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><span class="habit-name ${done ? 'done' : ''}">${escHtml(t.name)}</span></div>`;
+      const done = t.completedDates && t.completedDates.includes(today);
+      return `<div class="task ${done ? 'done' : ''}" data-i="${i}"><span class="chk ${done ? 'done' : ''}"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span><span class="task-name">${escHtml(t.name)}</span></div>`;
     }).join('');
-    list.querySelectorAll('.habit-item').forEach(el => { 
-      el.addEventListener('click', (e) => {
-        const check = el.querySelector('.habit-check');
-        if (check) check.classList.add('anim-pop');
-        setTimeout(() => HabitsModule.toggleHabit(+el.dataset.i), 200);
-      }); 
+    list.querySelectorAll('.task').forEach(el => {
+      el.addEventListener('click', () => {
+        const chk = el.querySelector('.chk'); if (chk) chk.classList.add('anim-pop');
+        setTimeout(() => HabitsModule.toggleHabit(+el.dataset.i), 180);
+      });
     });
   }
+
   function renderGoals() {
     const s = StateModule.get(); const list = document.getElementById('dash-goals-list');
-    if (!s.goals.length) { list.innerHTML = '<span class="hint-text">Gestiona tus propósitos en la pestaña Metas.</span>'; return; }
-    list.innerHTML = s.goals.map(g => `<div class="habit-item" style="cursor:default;"><div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="14" height="14" viewBox="0 0 24 24" stroke="var(--text-sec)" stroke-width="3" fill="none" stroke-linecap="round"><line x1="6" y1="12" x2="18" y2="12"/></svg></div><span class="habit-name">${escHtml(g.text)}</span></div>`).join('');
+    if (!s.goals.length) { list.innerHTML = '<span class="hint-text">Gestiona tus metas en la pestaña Metas.</span>'; return; }
+    list.innerHTML = s.goals.map(g => `<div class="goal-row"><span class="g-name">${escHtml(g.text)}</span><span class="g-meta">${g.date ? formatShort(g.date) : 'en curso'}</span></div>`).join('');
   }
+
+  function renderSidebarLevel() {
+    const s = StateModule.get(); const el = document.getElementById('sb-level');
+    if (el) el.textContent = `Nivel ${s.level} · ${s.league}`;
+  }
+
   function markToday(type) {
     const s = StateModule.get(); const today = StreakModule.todayStr();
     if (type === 'gym') {
-      if (!s.gymDays.includes(today)) { s.gymDays.push(today); XPModule.addXP(50, 100); UIModule.toast('+50 XP — ¡Gran trabajo!', 'success'); haptic(); } 
-      else { UIModule.toast('Ya registraste un entreno hoy', 'info'); }
+      if (!s.gymDays.includes(today)) { s.gymDays.push(today); XPModule.addXP(50, 100); UIModule.toast('Entreno registrado', 'success'); haptic(); }
+      else { UIModule.toast('Ya has registrado un entreno hoy', 'info'); }
     } else {
-      if (!s.restDays.includes(today) && !s.gymDays.includes(today)) { s.restDays.push(today); XPModule.addXP(30, 50); UIModule.toast('+30 XP — Descanso registrado', 'info'); haptic(); } 
-      else { UIModule.toast('Ya registraste un día hoy', 'info'); }
+      if (!s.restDays.includes(today) && !s.gymDays.includes(today)) { s.restDays.push(today); XPModule.addXP(30, 50); UIModule.toast('Descanso registrado', 'info'); haptic(); }
+      else { UIModule.toast('Ya has registrado el día', 'info'); }
     }
     StateModule.save(); render(); ConstanciaModule.render();
   }
@@ -344,7 +373,7 @@ const HabitsModule = (() => {
     const s = StateModule.get(); const todayStr = StreakModule.todayStr(); const list = document.getElementById('habits-list');
     list.innerHTML = s.tasks.map((t, i) => {
       const done = t.completedDates && t.completedDates.includes(todayStr);
-      return `<div class="active-item-card"><div class="habit-check ${done ? 'done' : ''}" data-hi="${i}"><svg width="14" height="14" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span class="habit-name ${done ? 'done' : ''}">${escHtml(t.name)}</span><button class="ai-del" data-del-h="${i}"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="var(--text-sec)" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>`;
+      return `<div class="active-item-card"><div class="habit-check ${done ? 'done' : ''}" data-hi="${i}"><svg width="12" height="12" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span class="habit-name ${done ? 'done' : ''}">${escHtml(t.name)}</span><button class="ai-del" data-del-h="${i}"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="var(--text-sec)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>`;
     }).join('');
     list.querySelectorAll('.habit-check').forEach(el => el.addEventListener('click', (e) => {
       el.classList.add('anim-pop');
@@ -449,9 +478,7 @@ const CommunityModule = (() => {
     
     users.sort((a, b) => b.xp - a.xp);
     document.getElementById('leaderboard').innerHTML = users.map((u, i) => {
-      const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
-      const rankStr = i < 3 ? ['🥇', '🥈', '🥉'][i] : `#${i + 1}`;
-      return `<div class="lb-item ${u.isMe ? 'me' : ''}"><div class="lb-rank ${rankClass}">${rankStr}</div><div class="lb-avatar">${(u.name||'U').charAt(0)}</div><div class="lb-name">${escHtml(u.name)}${u.isMe ? ' (tú)' : ''}</div><div class="lb-xp">${u.xp} XP</div></div>`;
+      return `<div class="lb-item ${u.isMe ? 'me' : ''}"><div class="lb-rank">${i + 1}</div><div class="lb-avatar">${(u.name||'U').charAt(0)}</div><div class="lb-name">${escHtml(u.name)}${u.isMe ? ' (tú)' : ''}</div><div class="lb-xp">${u.xp} XP</div></div>`;
     }).join('');
   }
   function renderFriends() {
@@ -831,17 +858,10 @@ function bindEvents() {
   document.getElementById('import-data-btn').addEventListener('click', () => document.getElementById('import-file-input').click());
   document.getElementById('import-file-input').addEventListener('change', e => { if(e.target.files[0]) SettingsModule.importData(e.target.files[0]); });
   document.getElementById('delete-data-btn').addEventListener('click', SettingsModule.deleteAllData);
-  
-  // Dashboard / Modificadas con animación pop-in manual
-  document.getElementById('btn-trained').addEventListener('click', function(e) {
-    this.classList.add('anim-pop');
-    setTimeout(() => { this.classList.remove('anim-pop'); DashboardModule.markToday('gym'); }, 200);
-  });
-  document.getElementById('btn-rest').addEventListener('click', function(e) {
-    this.classList.add('anim-pop');
-    setTimeout(() => { this.classList.remove('anim-pop'); DashboardModule.markToday('rest'); }, 200);
-  });
-  
+
+  // (La acción principal de la Home — "Empezar entreno" / "Marcar descanso" —
+  //  se enlaza dinámicamente en DashboardModule.renderToday según el día.)
+
   // Metas Actions
   document.getElementById('habit-add-btn').addEventListener('click', function(e) {
     this.classList.add('anim-pop');
