@@ -21,20 +21,9 @@ const FIREBASE_CONFIG = {
    ───────────────────────────────────────────── */
 const SCHEMA_VERSION = 1;
 const XP_PER_LEVEL = [0, 500, 1200, 2100, 3200, 4500, 6000, 7800, 9800, 12000, 15000];
-const LEAGUES = ['Bronce', 'Plata', 'Oro', 'Zafiro', 'Leyenda'];
-const LEAGUE_ICONS = { Bronce: '🥉', Plata: '🥈', Oro: '🥇', Zafiro: '💎', Leyenda: '👑' };
 const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const MONTHS_SHORT = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-const WISDOM = [
-  '"Lo que no te mata te hace más fuerte. - Nietzsche"',
-  '"Sufre el dolor de la disciplina o el de la decepción."',
-  '"No cuentes los días, haz que los días cuenten."',
-  '"El éxito es la suma de pequeños esfuerzos repetidos."',
-  '"Tu único competidor eres tú del ayer."',
-  '"La constancia supera al talento cuando el talento no es constante."'
-];
-
 const EXERCISE_DB = [
   { name: 'Press de Banca', muscle: 'Pecho' }, { name: 'Press Inclinado', muscle: 'Pecho' },
   { name: 'Peso Muerto', muscle: 'Espalda' }, { name: 'Dominadas', muscle: 'Espalda' },
@@ -45,10 +34,6 @@ const EXERCISE_DB = [
   { name: 'Correr', muscle: 'Cardio' }
 ];
 const MUSCLE_FILTERS = ['Todos','Pecho','Espalda','Hombros','Bíceps','Tríceps','Piernas','Glúteos','Core','Cardio'];
-const SIMULATED_USERS = [
-  { name: 'Alejandro R.', xp: 0 }, { name: 'María G.', xp: 0 }, { name: 'Carlos P.', xp: 0 },
-  { name: 'Sofía L.', xp: 0 }, { name: 'Diego M.', xp: 0 }
-];
 
 /* ─────────────────────────────────────────────
    STATE MODULE
@@ -56,9 +41,7 @@ const SIMULATED_USERS = [
 function defaultState() {
   return {
     schemaVersion: SCHEMA_VERSION, level: 1, xp: 0, maxStreak: 0, updatedAt: 0,
-    leagueXP: 0, league: 'Bronce',
     friendCode: generateCode(), friends: [],
-    leagueSimulatedUsers: SIMULATED_USERS.map(u => ({ ...u, xp: Math.floor(Math.random() * 600) + 50 })),
     gymDays: [], restDays: [],
     weeklyRoutine: DAYS.map(d => ({ day: d, exercises: [] })),
     muscleRoutine: [{ name: 'Grupo 1', exercises: [] }],
@@ -212,17 +195,15 @@ const UIModule = (() => {
    XP / STREAK MODULES
    ───────────────────────────────────────────── */
 const XPModule = (() => {
-  function addXP(amount, leagueAmount = 0) {
+  function addXP(amount) {
     const s = StateModule.get();
-    s.xp += amount; s.leagueXP += leagueAmount;
+    s.xp += amount;
     let lvl = s.level;
     while (lvl < XP_PER_LEVEL.length - 1 && s.xp >= XP_PER_LEVEL[lvl]) { lvl++; UIModule.toast(`Has alcanzado el nivel ${lvl}`, 'success', 3200); }
     s.level = lvl;
-    if (s.leagueXP >= 2000 && s.league !== 'Leyenda') { const idx = LEAGUES.indexOf(s.league); if (idx < LEAGUES.length - 1) s.league = LEAGUES[idx + 1]; }
-    StateModule.save(); DashboardModule.render(); CommunityModule.renderLeague();
+    StateModule.save(); DashboardModule.render();
   }
-  function getXPProgress(xp, level) { const current = xp - (XP_PER_LEVEL[level - 1] || 0); const needed = (XP_PER_LEVEL[level] || XP_PER_LEVEL[XP_PER_LEVEL.length - 1]) - (XP_PER_LEVEL[level - 1] || 0); return { current, needed, pct: Math.min(100, Math.round(current / needed * 100)) }; }
-  return { addXP, getXPProgress };
+  return { addXP };
 })();
 
 const StreakModule = (() => {
@@ -262,26 +243,33 @@ const StreakModule = (() => {
    DASHBOARD MODULE
    ───────────────────────────────────────────── */
 const DashboardModule = (() => {
-  const DAYNAMES = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
   function todayIndex() { return (new Date().getDay() + 6) % 7; }
   function muscleOf(name) { const e = EXERCISE_DB.find(x => x.name === name); return e ? e.muscle : null; }
   function formatShort(str) { const d = StreakModule.parseDate(str); return `${MONTHS_SHORT[d.getMonth()]} ${d.getFullYear()}`; }
 
-  function render() { renderDate(); renderToday(); renderMetrics(); renderTasks(); renderGoals(); renderSidebarLevel(); }
+  function render() { renderGreeting(); renderToday(); renderWeeks(); renderTasks(); renderGoals(); renderSidebarLevel(); }
 
-  function renderDate() {
-    const el = document.getElementById('home-date'); if (!el) return;
-    const d = new Date();
-    el.textContent = `${DAYNAMES[todayIndex()]}, ${d.getDate()} de ${MONTHS[d.getMonth()].toLowerCase()}`;
+  function renderGreeting() {
+    const now = new Date(); const h = now.getHours();
+    const greeting = h < 6 ? 'Buenas noches' : h < 13 ? 'Buenos días' : h < 21 ? 'Buenas tardes' : 'Buenas noches';
+    const titleEl = document.getElementById('home-greet-title'); if (titleEl) titleEl.textContent = greeting;
+    const subEl = document.getElementById('home-greeting');
+    if (subEl) { const { week, total } = isoWeekData(now); subEl.textContent = `Semana ${week}/${total} del año`; }
+  }
+  // Número de semana ISO-8601 (semana empieza en lunes) y total de semanas del año ISO
+  function isoWeekData(date) {
+    const thu = d => { const t = new Date(d.getFullYear(), d.getMonth(), d.getDate()); t.setDate(t.getDate() - ((t.getDay() + 6) % 7) + 3); return t; };
+    const weekOf = d => { const t = thu(d); const first = thu(new Date(t.getFullYear(), 0, 4)); return 1 + Math.round((t - first) / 604800000); };
+    const isoYear = thu(date).getFullYear();
+    return { week: weekOf(date), total: weekOf(new Date(isoYear, 11, 28)) };
   }
 
   function renderToday() {
     const s = StateModule.get(); const idx = todayIndex(); const day = s.weeklyRoutine[idx];
     const routineEl = document.getElementById('home-routine');
     const subEl = document.getElementById('home-sub');
-    const exCard = document.getElementById('home-ex-card');
-    const cta = document.getElementById('home-cta');
-    if (!routineEl || !cta) return;
+    const card = document.getElementById('home-cta');
+    if (!routineEl || !card) return;
     const today = StreakModule.todayStr();
     const trainedToday = s.gymDays.includes(today);
     const restedToday = s.restDays.includes(today);
@@ -289,40 +277,46 @@ const DashboardModule = (() => {
     if (day.exercises.length) {
       const muscles = [...new Set(day.exercises.map(e => muscleOf(e.name)).filter(Boolean))];
       routineEl.textContent = muscles.length ? muscles.slice(0, 3).join(', ') : 'Entrenamiento de hoy';
-      const n = day.exercises.length;
-      const mins = Math.max(15, Math.round(n * 8 / 5) * 5);
-      subEl.textContent = `${n} ${n === 1 ? 'ejercicio' : 'ejercicios'} · ~${mins} min`;
-      const preview = day.exercises.slice(0, 3).map(ex => {
-        const sets = ex.sets || []; const first = sets[0];
-        const detail = first && first.weight > 0
-          ? `${sets.length} × ${first.reps} · ${first.weight} ${s.settings.weightUnit}`
-          : `${sets.length} ${sets.length === 1 ? 'serie' : 'series'}`;
-        return `<div class="exrow"><span class="exname">${escHtml(ex.name)}</span><span class="exdetail">${detail}</span></div>`;
-      }).join('');
-      const moreCount = n - 3;
-      exCard.innerHTML = preview + (moreCount > 0 ? `<div class="exmore">+ ${moreCount} más</div>` : '');
-      cta.textContent = trainedToday ? 'Ver entreno' : 'Empezar entreno';
-      cta.className = trainedToday ? 'home-cta ghost' : 'home-cta';
-      cta.onclick = () => RoutineModule.openEditor(idx, 'days');
+      const nEx = day.exercises.length;
+      const nSets = day.exercises.reduce((a, e) => a + (e.sets ? e.sets.length : 0), 0);
+      subEl.textContent = trainedToday
+        ? 'Entreno completado hoy'
+        : `${nEx} ${nEx === 1 ? 'ejercicio' : 'ejercicios'} · ${nSets} ${nSets === 1 ? 'serie' : 'series'}`;
+      card.classList.toggle('done', trainedToday);
+      card.onclick = () => RoutineModule.openEditor(idx, 'days');
     } else {
-      routineEl.textContent = 'Descanso';
-      subEl.textContent = restedToday ? 'Descanso registrado' : (trainedToday ? 'Entreno registrado' : 'Hoy toca descansar');
-      exCard.innerHTML = '';
-      if (restedToday) { cta.textContent = 'Descanso registrado'; cta.className = 'home-cta ghost'; cta.onclick = null; }
-      else if (trainedToday) { cta.textContent = 'Ver entreno'; cta.className = 'home-cta ghost'; cta.onclick = () => RoutineModule.openEditor(idx, 'days'); }
-      else { cta.textContent = 'Marcar descanso'; cta.className = 'home-cta ghost'; cta.onclick = () => markToday('rest'); }
+      routineEl.textContent = restedToday ? 'Descanso' : (trainedToday ? 'Entreno completado' : 'Descanso');
+      subEl.textContent = restedToday ? 'Descanso registrado hoy' : (trainedToday ? 'Buen trabajo hoy' : 'Toca para marcar descanso');
+      card.classList.toggle('done', restedToday || trainedToday);
+      card.onclick = (restedToday || trainedToday) ? null : () => markToday('rest');
     }
   }
 
-  function renderMetrics() {
-    const s = StateModule.get(); const now = new Date();
-    const monday = new Date(now); monday.setHours(0, 0, 0, 0);
-    monday.setDate(monday.getDate() - ((now.getDay() + 6) % 7));
-    const week = s.gymDays.filter(str => StreakModule.parseDate(str) >= monday).length;
-    const month = s.gymDays.filter(str => { const d = StreakModule.parseDate(str); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); }).length;
-    const { streak } = StreakModule.compute();
-    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-    set('m-week', week); set('m-month', month); set('m-streak', `${streak} d`);
+  function renderWeeks() {
+    const s = StateModule.get();
+    const grid = document.getElementById('weeks-grid'); if (!grid) return;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const todayStr = StreakModule.dateToStr(today);
+    // Lunes de esta semana, retrocediendo una semana más = 14 días alineados a semanas
+    const start = new Date(today); start.setDate(today.getDate() - ((today.getDay() + 6) % 7) - 7);
+    let active = 0, html = '';
+    for (let i = 0; i < 14; i++) {
+      const d = new Date(start); d.setDate(start.getDate() + i);
+      const str = StreakModule.dateToStr(d);
+      const isFuture = d > today;
+      const isActive = !isFuture && (s.gymDays.includes(str) || s.restDays.includes(str));
+      if (isActive) active++;
+      let cls = 'week-cell';
+      if (isFuture) cls += ' future';
+      else if (isActive) cls += ' active';
+      if (str === todayStr) cls += ' today';
+      html += `<div class="${cls}">${d.getDate()}</div>`;
+    }
+    grid.innerHTML = html;
+    document.getElementById('weeks-active').textContent = active;
+    const end = new Date(start); end.setDate(start.getDate() + 13);
+    const fmt = d => `${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`;
+    document.getElementById('weeks-range').textContent = `${fmt(start)} – ${fmt(end)}`;
   }
 
   function renderTasks() {
@@ -348,16 +342,16 @@ const DashboardModule = (() => {
 
   function renderSidebarLevel() {
     const s = StateModule.get(); const el = document.getElementById('sb-level');
-    if (el) el.textContent = `Nivel ${s.level} · ${s.league}`;
+    if (el) el.textContent = `Nivel ${s.level}`;
   }
 
   function markToday(type) {
     const s = StateModule.get(); const today = StreakModule.todayStr();
     if (type === 'gym') {
-      if (!s.gymDays.includes(today)) { s.gymDays.push(today); XPModule.addXP(50, 100); UIModule.toast('Entreno registrado', 'success'); haptic(); }
+      if (!s.gymDays.includes(today)) { s.gymDays.push(today); XPModule.addXP(50); UIModule.toast('Entreno registrado', 'success'); haptic(); }
       else { UIModule.toast('Ya has registrado un entreno hoy', 'info'); }
     } else {
-      if (!s.restDays.includes(today) && !s.gymDays.includes(today)) { s.restDays.push(today); XPModule.addXP(30, 50); UIModule.toast('Descanso registrado', 'info'); haptic(); }
+      if (!s.restDays.includes(today) && !s.gymDays.includes(today)) { s.restDays.push(today); XPModule.addXP(30); UIModule.toast('Descanso registrado', 'info'); haptic(); }
       else { UIModule.toast('Ya has registrado el día', 'info'); }
     }
     StateModule.save(); render(); ConstanciaModule.render();
@@ -384,7 +378,7 @@ const HabitsModule = (() => {
   function toggleHabit(i) {
     const s = StateModule.get(); const todayStr = StreakModule.todayStr(); const task = s.tasks[i];
     if (!task.completedDates) task.completedDates = []; const idx = task.completedDates.indexOf(todayStr);
-    if (idx === -1) { task.completedDates.push(todayStr); XPModule.addXP(10, 20); haptic(); } else { task.completedDates.splice(idx, 1); }
+    if (idx === -1) { task.completedDates.push(todayStr); XPModule.addXP(10); haptic(); } else { task.completedDates.splice(idx, 1); }
     StateModule.save(); render(); DashboardModule.render(); ConstanciaModule.render();
   }
   function addHabit(name) {
@@ -408,79 +402,10 @@ const GoalsModule = (() => {
 })();
 
 /* ─────────────────────────────────────────────
-   POMODORO MODULE
-   ───────────────────────────────────────────── */
-const PomodoroModule = (() => {
-  let timer = null, timeLeft = 25 * 60, isRunning = false, currentDuration = 25 * 60;
-  function init() {
-    document.getElementById('pomo-btn-start').addEventListener('click', start);
-    document.getElementById('pomo-btn-pause').addEventListener('click', pause);
-    document.getElementById('pomo-btn-reset').addEventListener('click', reset);
-    document.getElementById('pomo-btn-break').addEventListener('click', startBreak);
-    const slider = document.getElementById('pomo-slider');
-    slider.addEventListener('input', (e) => {
-      if (isRunning) return;
-      document.getElementById('pomo-slider-val').textContent = e.target.value + ' min';
-      currentDuration = parseInt(e.target.value) * 60;
-      timeLeft = currentDuration; updateDisplay();
-    });
-    updateDisplay();
-  }
-  function start() {
-    if (isRunning) return; isRunning = true;
-    document.getElementById('pomo-btn-start').style.display = 'none';
-    document.getElementById('pomo-btn-pause').style.display = 'flex';
-    document.getElementById('pomo-slider').disabled = true; document.getElementById('pomo-slider').style.opacity = '0.5';
-    if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') Notification.requestPermission();
-    timer = setInterval(() => { timeLeft--; updateDisplay(); if (timeLeft <= 0) { completeTimer(); } }, 1000);
-  }
-  function pause() {
-    if (!isRunning) return; isRunning = false; clearInterval(timer);
-    document.getElementById('pomo-btn-start').style.display = 'flex';
-    document.getElementById('pomo-btn-pause').style.display = 'none';
-  }
-  function reset() {
-    pause(); timeLeft = currentDuration; document.getElementById('pomo-break-opts').style.display = 'none';
-    document.getElementById('pomo-slider').disabled = false; document.getElementById('pomo-slider').style.opacity = '1'; updateDisplay();
-  }
-  function startBreak() {
-    currentDuration = 5 * 60; reset(); start(); document.getElementById('pomo-break-opts').style.display = 'none';
-    document.getElementById('pomo-slider').value = 5; document.getElementById('pomo-slider-val').textContent = '5 min';
-  }
-  function completeTimer() {
-    pause(); haptic();
-    if ('Notification' in window && Notification.permission === 'granted') { new Notification('¡Tiempo terminado!', { body: currentDuration === 5 * 60 ? 'El descanso ha terminado. ¡A trabajar!' : 'Tu pomodoro ha terminado. Tómate un descanso.', icon: 'icon-192.png' }); }
-    UIModule.toast('¡Tiempo terminado!', 'success');
-    if (currentDuration !== 5 * 60) { document.getElementById('pomo-break-opts').style.display = 'flex'; }
-  }
-  function updateDisplay() {
-    const m = Math.floor(timeLeft / 60); const s = timeLeft % 60;
-    document.getElementById('pomo-timer').textContent = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  }
-  return { init };
-})();
-
-/* ─────────────────────────────────────────────
    COMMUNITY & SETTINGS MODULES
    ───────────────────────────────────────────── */
 const CommunityModule = (() => {
-  function render() { renderLeague(); renderFriends(); }
-  function renderLeague() {
-    const s = StateModule.get(); document.getElementById('league-icon').textContent = LEAGUE_ICONS[s.league] || '🥉';
-    document.getElementById('league-name').textContent = `Liga ${s.league}`;
-    const now = new Date(); const daysUntilMon = (8 - now.getDay()) % 7 || 7;
-    document.getElementById('league-sub').textContent = `${daysUntilMon} día${daysUntilMon !== 1 ? 's' : ''} hasta el reinicio`;
-    
-    const users = s.leagueSimulatedUsers.map(u => ({ ...u, isMe: false })); 
-    
-    // Alineado de XP para que sea el número global del usuario
-    users.push({ name: 'Tú', xp: s.xp, isMe: true });
-    
-    users.sort((a, b) => b.xp - a.xp);
-    document.getElementById('leaderboard').innerHTML = users.map((u, i) => {
-      return `<div class="lb-item ${u.isMe ? 'me' : ''}"><div class="lb-rank">${i + 1}</div><div class="lb-avatar">${(u.name||'U').charAt(0)}</div><div class="lb-name">${escHtml(u.name)}${u.isMe ? ' (tú)' : ''}</div><div class="lb-xp">${u.xp} XP</div></div>`;
-    }).join('');
-  }
+  function render() { renderFriends(); }
   function renderFriends() {
     const s = StateModule.get(); document.getElementById('friend-code-display').textContent = s.friendCode; const list = document.getElementById('friends-list');
     if (!s.friends.length) { list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-sec);font-weight:600">Añade amigos con su código</div>'; return; }
@@ -500,7 +425,7 @@ const CommunityModule = (() => {
     s.friends.push({ code, name: customName, xp: Math.floor(Math.random() * 500) + 50 }); 
     StateModule.save(); renderFriends(); UIModule.toast('Amigo añadido', 'success');
   }
-  return { render, renderLeague, renderFriends, addFriend };
+  return { render, renderFriends, addFriend };
 })();
 
 const SettingsModule = (() => {
@@ -539,7 +464,7 @@ const EnergyModule = (() => {
   }
   function close(level) {
     UIModule.closeModal('energy-modal');
-    if (level !== undefined) { UIModule.toast(`Energía registrada: ${FACES[level].l}`, 'success'); XPModule.addXP(50, 100); }
+    if (level !== undefined) { UIModule.toast(`Energía registrada: ${FACES[level].l}`, 'success'); XPModule.addXP(50); }
   }
   return { open, close };
 })();
@@ -568,6 +493,7 @@ const NotifModule = (() => {
    ───────────────────────────────────────────── */
 const RoutineModule = (() => {
   let currentEditorIndex = -1, editorMode = 'days', restTimerInterval = null, restSeconds = 0;
+  let editorTimerInterval = null, editorStartTime = 0;
   function renderDayList() {
     const s = StateModule.get(); const list = document.getElementById('routine-days-view');
     list.innerHTML = s.weeklyRoutine.map((d, i) => `<div class="routine-list-item" data-day="${i}"><span class="rli-name">${d.day}</span><span class="rli-status ${d.exercises.length ? 'rutina' : 'descanso'}">${d.exercises.length ? 'Rutina >' : 'Descanso >'}</span></div>`).join('');
@@ -581,25 +507,37 @@ const RoutineModule = (() => {
   function openEditor(idx, mode) {
     currentEditorIndex = idx; editorMode = mode; const s = StateModule.get(); const item = mode === 'days' ? s.weeklyRoutine[idx] : s.muscleRoutine[idx];
     document.getElementById('editor-title').textContent = item.day || item.name;
-    const editor = document.getElementById('routine-editor'); editor.style.display = 'flex'; requestAnimationFrame(() => editor.classList.add('open'));
-    renderExercises(item.exercises);
+    const editor = document.getElementById('routine-editor'); editor.style.display = 'flex'; editor.scrollTop = 0; requestAnimationFrame(() => editor.classList.add('open'));
+    renderExercises(item.exercises); startEditorTimer();
   }
-  function closeEditor() { const editor = document.getElementById('routine-editor'); editor.classList.remove('open'); setTimeout(() => { editor.style.display = 'none'; }, 350); stopRestTimer(); }
+  function closeEditor() { const editor = document.getElementById('routine-editor'); editor.classList.remove('open'); setTimeout(() => { editor.style.display = 'none'; }, 350); stopRestTimer(); stopEditorTimer(); }
+  function startEditorTimer() {
+    stopEditorTimer(); editorStartTime = Date.now();
+    const tick = () => {
+      const secs = Math.floor((Date.now() - editorStartTime) / 1000);
+      const m = Math.floor(secs / 60), s = secs % 60;
+      const el = document.getElementById('editor-timer'); if (el) el.textContent = `${m}:${s.toString().padStart(2, '0')}`;
+    };
+    tick(); editorTimerInterval = setInterval(tick, 1000);
+  }
+  function stopEditorTimer() { if (editorTimerInterval) { clearInterval(editorTimerInterval); editorTimerInterval = null; } }
   function getCurrentItem() { return editorMode === 'days' ? StateModule.get().weeklyRoutine[currentEditorIndex] : StateModule.get().muscleRoutine[currentEditorIndex]; }
 
   function renderExercises(exercises) {
     const list = document.getElementById('exercise-list'); const s = StateModule.get();
+    const unit = (s.settings.weightUnit || 'kg').toUpperCase();
     list.innerHTML = exercises.map((ex, ei) => {
       const history = s.exerciseHistory[ex.name]; const lastStr = history && history.length ? `Última vez: ${formatDate(history[history.length - 1].date)}` : 'Sin historial aún';
+      const dbEx = EXERCISE_DB.find(x => x.name === ex.name); const muscle = dbEx ? dbEx.muscle : '';
       const sets = ex.sets.map((set, si) => `
-        <div class="set-row ${set.done ? 'done' : ''}"><div class="set-num">${si + 1}</div><input class="set-input" type="number" value="${set.weight}" data-field="weight" data-ei="${ei}" data-si="${si}"/><input class="set-input" type="number" value="${set.reps}" data-field="reps" data-ei="${ei}" data-si="${si}"/><select class="rpe-select" data-field="rpe" data-ei="${ei}" data-si="${si}">${[6,7,7.5,8,8.5,9,9.5,10].map(r => `<option ${set.rpe == r ? 'selected' : ''}>${r}</option>`).join('')}</select><div class="set-check ${set.done ? 'done' : ''}" data-ei="${ei}" data-si="${si}"><svg width="14" height="14" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="set-del" data-ei="${ei}" data-si="${si}"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="var(--text-sec)" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>`).join('');
-      return `<div class="exercise-card"><div class="exercise-header"><div class="ex-name">${escHtml(ex.name)}</div><div class="ex-actions"><button class="ex-action-btn danger" data-del-ex="${ei}"><svg width="14" height="14" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="var(--danger)" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div></div><div class="ex-history">${lastStr}</div><div class="sets-header"><span>#</span><span style="text-align:center">Peso</span><span style="text-align:center">Reps</span><span>RPE</span><span></span></div>${sets}<button class="add-set-btn" data-ei="${ei}"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg> Añadir serie</button></div>`;
+        <div class="set-row ${set.done ? 'done' : ''}"><div class="set-num">${si + 1}</div><input class="set-input" type="number" inputmode="decimal" value="${set.weight}" data-field="weight" data-ei="${ei}" data-si="${si}"/><input class="set-input" type="number" inputmode="numeric" value="${set.reps}" data-field="reps" data-ei="${ei}" data-si="${si}"/><div class="set-check ${set.done ? 'done' : ''}" data-ei="${ei}" data-si="${si}"><svg width="15" height="15" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="set-del" data-ei="${ei}" data-si="${si}"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="var(--text-sec)" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>`).join('');
+      return `<div class="exercise-card"><div class="exercise-header"><div class="ex-info"><div class="ex-name">${escHtml(ex.name)}</div>${muscle ? `<div class="ex-muscle">${escHtml(muscle)}</div>` : ''}</div><div class="ex-actions"><button class="ex-action-btn danger" data-del-ex="${ei}"><svg width="14" height="14" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="var(--danger)" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div></div><div class="ex-history">${lastStr}</div><div class="sets-header"><span>Serie</span><span>${unit}</span><span>Reps</span><span></span><span></span></div>${sets}<button class="add-set-btn" data-ei="${ei}"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg> Añadir serie</button></div>`;
     }).join('');
     bindEditorEvents(); updateVolume();
   }
   function bindEditorEvents() {
     const list = document.getElementById('exercise-list');
-    list.querySelectorAll('.set-input,.rpe-select').forEach(input => { input.addEventListener('change', e => { const { ei, si, field } = e.target.dataset; const set = getCurrentItem().exercises[+ei].sets[+si]; set[field] = parseFloat(e.target.value) || 0; StateModule.save(); updateVolume(); }); });
+    list.querySelectorAll('.set-input').forEach(input => { input.addEventListener('change', e => { const { ei, si, field } = e.target.dataset; const set = getCurrentItem().exercises[+ei].sets[+si]; set[field] = parseFloat(e.target.value) || 0; StateModule.save(); updateVolume(); }); });
     list.querySelectorAll('.set-check').forEach(el => { el.addEventListener('click', () => { const ei = +el.dataset.ei, si = +el.dataset.si; const item = getCurrentItem(); const set = item.exercises[ei].sets[si]; set.done = !set.done; StateModule.save(); renderExercises(item.exercises); if (set.done) { haptic(); startRestTimer(); } }); });
     list.querySelectorAll('.set-del').forEach(el => { el.addEventListener('click', () => { const ei = +el.dataset.ei, si = +el.dataset.si; const item = getCurrentItem(); item.exercises[ei].sets.splice(si, 1); StateModule.save(); renderExercises(item.exercises); }); });
     list.querySelectorAll('.add-set-btn').forEach(btn => { btn.addEventListener('click', () => { const ei = +btn.dataset.ei; const item = getCurrentItem(); const lastSet = item.exercises[ei].sets.slice(-1)[0]; item.exercises[ei].sets.push({ weight: lastSet ? lastSet.weight : 0, reps: lastSet ? lastSet.reps : 10, rpe: lastSet ? lastSet.rpe : 8, done: false }); StateModule.save(); renderExercises(item.exercises); }); });
@@ -617,8 +555,8 @@ const RoutineModule = (() => {
         if (!s.recentExercises.includes(ex.name)) { s.recentExercises.unshift(ex.name); if (s.recentExercises.length > 5) s.recentExercises.pop(); }
       }
     });
-    if (!s.gymDays.includes(today)) { s.gymDays.push(today); XPModule.addXP(50, 100); }
-    StateModule.save(); EnergyModule.open(); DashboardModule.render(); ConstanciaModule.render();
+    if (!s.gymDays.includes(today)) { s.gymDays.push(today); XPModule.addXP(50); }
+    StateModule.save(); closeEditor(); DashboardModule.render(); ConstanciaModule.render(); EnergyModule.open();
   }
   function startRestTimer() {
     const s = StateModule.get(); restSeconds = s.settings.restDuration; stopRestTimer();
@@ -659,7 +597,7 @@ const ExerciseSheetModule = (() => {
     StateModule.save(); RoutineModule.openEditor(dayIdx >= 0 ? dayIdx : groupIdx, dayIdx >= 0 ? 'days' : 'groups'); UIModule.toast(`${name} añadido`, 'success');
   }
   function openCustomModal() { close(); UIModule.openModal('custom-ex-modal'); document.getElementById('custom-ex-input').value = ''; }
-  return { open, close, renderExercises, openCustomModal };
+  return { open, close, renderExercises, openCustomModal, addExercise };
 })();
 
 /* ─────────────────────────────────────────────
@@ -796,8 +734,7 @@ const ConstanciaModule = (() => {
     
   }
 
-  function init() {}
-  return { init, render };
+  return { render };
 })();
 
 /* ─────────────────────────────────────────────
@@ -836,14 +773,6 @@ function bindEvents() {
   document.getElementById('open-settings-menu').addEventListener('click', () => { UIModule.closeSidebar(); SettingsModule.init(); UIModule.openModal('modal-settings'); });
   document.getElementById('close-community').addEventListener('click', () => UIModule.closeModal('modal-community'));
   document.getElementById('close-settings').addEventListener('click', () => UIModule.closeModal('modal-settings'));
-
-  document.querySelectorAll('.comm-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('.comm-tab').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.comm-pane').forEach(p => p.classList.remove('active'));
-      tab.classList.add('active'); document.getElementById(`pane-${tab.dataset.pane}`).classList.add('active');
-    });
-  });
 
   document.getElementById('copy-code-btn').addEventListener('click', () => { navigator.clipboard.writeText(StateModule.get().friendCode).then(() => UIModule.toast('Copiado', 'success')); });
   document.getElementById('add-friend-btn').addEventListener('click', () => { CommunityModule.addFriend(document.getElementById('friend-code-input').value); document.getElementById('friend-code-input').value = ''; });
@@ -893,29 +822,17 @@ function bindEvents() {
   
   document.getElementById('custom-ex-confirm').addEventListener('click', () => {
     const name = document.getElementById('custom-ex-input').value.trim(); if (!name) return;
-    UIModule.closeModal('custom-ex-modal'); EXERCISE_DB.push({ name, muscle: 'Personalizado' });
-    const s = StateModule.get(); const editorTitle = document.getElementById('editor-title').textContent;
-    const dayIdx = s.weeklyRoutine.findIndex(d => d.day === editorTitle); const groupIdx = s.muscleRoutine.findIndex(g => g.name === editorTitle);
-    if (dayIdx >= 0) s.weeklyRoutine[dayIdx].exercises.push({ name, sets: [{ weight: 0, reps: 10, rpe: 8, done: false }] });
-    else if (groupIdx >= 0) s.muscleRoutine[groupIdx].exercises.push({ name, sets: [{ weight: 0, reps: 10, rpe: 8, done: false }] });
-    StateModule.save(); RoutineModule.openEditor(dayIdx >= 0 ? dayIdx : groupIdx, dayIdx >= 0 ? 'days' : 'groups'); UIModule.toast(`${name} añadido`, 'success');
+    UIModule.closeModal('custom-ex-modal');
+    EXERCISE_DB.push({ name, muscle: 'Personalizado' });
+    ExerciseSheetModule.addExercise(name);
   });
 
   document.getElementById('skip-rest-btn').addEventListener('click', () => RoutineModule.stopRestTimer());
-
-  // Intervalo ligas
-  setInterval(() => {
-    const s = StateModule.get();
-    s.leagueSimulatedUsers.forEach(u => { u.xp += Math.floor(Math.random() * 20); });
-    StateModule.save();
-  }, 60000 * 30);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   StateModule.load();
-  ConstanciaModule.init();
   TooltipModule.init();
-  PomodoroModule.init();
   UIModule.updateAuthUI(null);
   FirebaseModule.init();
   bindEvents(); NavModule.init();

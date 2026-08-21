@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-title" content="Zenit"/>
 
 <title>Zenit – Tu Mejor Versión</title>
-<meta name="description" content="Zenit es tu ecosistema para alcanzar tu mejor versión: entrena, construye hábitos, mantén la constancia y enfócate con Pomodoro. Todo en una sola app."/>
+<meta name="description" content="Zenit es tu ecosistema para alcanzar tu mejor versión: entrena, construye hábitos y mantén la constancia. Todo en una sola app."/>
 <meta name="author" content="Zenit"/>
 
 <!-- Open Graph / redes sociales -->
@@ -70,7 +70,6 @@
   --radius-ctl: 8px;
   --nav-h: 64px;
   --nav-gap: 16px;
-  --nav-bg: #141414;
   --trans: 0.2s ease;
   --shadow: 0 10px 30px rgba(0,0,0,.35);
 }
@@ -83,7 +82,6 @@
   --text-sec: #737373;
   --text-faint: #9ca3af;
   --pri-dim: rgba(255,91,0,.10);
-  --nav-bg: #141414;
   --shadow: 0 10px 30px rgba(0,0,0,.12);
 }
 *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -143,27 +141,40 @@ svg { flex-shrink: 0; }
 /* ============================================================
    HOME (Inicio)
    ============================================================ */
-.home { padding: 22px 20px 8px; }
-.home-row { display: flex; align-items: center; justify-content: space-between; }
-.home-date { font-size: 13px; color: var(--text-sec); font-weight: 400; }
-.home-hero { margin-top: 26px; }
-.home-label { font-size: 13px; color: var(--text-sec); font-weight: 400; }
-.home-routine { font-size: 26px; font-weight: 600; line-height: 1.15; letter-spacing: -0.3px; margin-top: 4px; color: var(--text-pri); }
-.home-sub { font-size: 13px; color: var(--text-sec); font-weight: 400; margin-top: 8px; }
-.ex-preview { margin-top: 22px; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
-.ex-preview:empty { display: none; }
-.exrow { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; }
-.exrow + .exrow, .exmore { border-top: 1px solid var(--border); }
-.exname { font-size: 14px; font-weight: 400; color: var(--text-pri); }
-.exdetail { font-size: 14px; font-weight: 400; color: var(--text-sec); }
-.exmore { padding: 12px 16px; font-size: 14px; color: var(--text-sec); }
-.home-cta { margin-top: 22px; width: 100%; padding: 13px; border: none; border-radius: var(--radius-ctl); background: var(--pri); color: #fff; font-size: 14px; font-weight: 500; transition: opacity .2s ease; }
-.home-cta:active { opacity: 0.85; }
-.home-cta.ghost { background: transparent; border: 1px solid var(--border); color: var(--text-pri); }
-.home-metrics { margin-top: 22px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-.metric { background: var(--surface2); border-radius: var(--radius-sm); padding: 12px; }
-.metric-l { font-size: 11px; color: var(--text-sec); font-weight: 400; }
-.metric-v { font-size: 18px; font-weight: 500; margin-top: 4px; color: var(--text-pri); font-variant-numeric: tabular-nums; }
+.home { padding: 18px 20px 8px; }
+.home-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.home-logo { height: 26px; width: auto; filter: brightness(0) invert(1); opacity: .92; }
+[data-theme="light"] .home-logo { filter: none; }
+.home-greet-title { font-size: 30px; font-weight: 700; letter-spacing: -0.5px; color: var(--text-pri); line-height: 1.1; }
+.home-greet-sub { font-size: 14px; color: var(--text-sec); font-weight: 400; margin-top: 4px; }
+
+/* Tarjeta principal de entreno de hoy */
+.workout-card { width: 100%; margin-top: 24px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; display: flex; align-items: center; justify-content: space-between; gap: 16px; text-align: left; transition: border-color .2s ease, opacity .2s ease; }
+.workout-card:active { opacity: .9; }
+.workout-card.done { opacity: .7; }
+.workout-card-info { min-width: 0; }
+.workout-card-title { font-size: 24px; font-weight: 700; letter-spacing: -0.3px; color: var(--text-pri); line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.workout-card-sub { font-size: 14px; color: var(--text-sec); font-weight: 400; margin-top: 6px; }
+.workout-card-arrow { flex-shrink: 0; width: 46px; height: 46px; border-radius: 50%; background: var(--pri); color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 16px rgba(255,91,0,.28); }
+.workout-card.done .workout-card-arrow { background: var(--surface2); color: var(--text-pri); box-shadow: none; }
+
+/* Widget de últimas 2 semanas */
+.weeks-widget { margin-top: 22px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+.weeks-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; }
+.weeks-title { font-size: 16px; font-weight: 600; color: var(--text-pri); }
+.weeks-range { font-size: 12px; color: var(--text-sec); font-weight: 400; margin-top: 4px; }
+.weeks-count { text-align: right; flex-shrink: 0; }
+.weeks-count-num { font-size: 26px; font-weight: 700; color: var(--text-pri); line-height: 1; font-variant-numeric: tabular-nums; }
+.weeks-count-lbl { font-size: 11px; color: var(--text-sec); font-weight: 400; margin-top: 2px; }
+.weeks-dows { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 6px; }
+.weeks-dows span { text-align: center; font-size: 10px; color: var(--text-sec); font-weight: 500; }
+.weeks-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.week-cell { aspect-ratio: 1; border-radius: 10px; background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: var(--text-sec); font-variant-numeric: tabular-nums; }
+.week-cell.active { background: var(--pri); color: #fff; }
+.week-cell.today { box-shadow: inset 0 0 0 2px var(--pri); }
+.week-cell.active.today { box-shadow: inset 0 0 0 2px #fff; }
+.week-cell.future { opacity: .35; }
+
 .home-sec { margin-top: 26px; font-size: 13px; color: var(--text-sec); font-weight: 400; }
 .home-list { margin-top: 12px; display: flex; flex-direction: column; gap: 14px; }
 .hint-text { font-size: 13px; color: var(--text-sec); font-weight: 400; }
@@ -180,19 +191,6 @@ svg { flex-shrink: 0; }
 /* Animación compartida (checks en Metas) */
 @keyframes popIn { 0% { transform: scale(1); } 50% { transform: scale(1.15); } 100% { transform: scale(1); } }
 .anim-pop { animation: popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards !important; }
-
-/* ============================================================
-   POMODORO
-   ============================================================ */
-.pomodoro-container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 58vh; padding: 20px; }
-.pomo-timer { font-size: 76px; font-weight: 500; font-variant-numeric: tabular-nums; margin-bottom: 30px; color: var(--text-pri); letter-spacing: -1px; }
-.pomo-controls { display: flex; gap: 10px; width: 100%; max-width: 300px; margin-bottom: 20px; }
-.pomo-controls button { margin: 0; flex: 1; }
-.pomo-slider-container { width: 100%; max-width: 300px; display: flex; flex-direction: column; align-items: center; gap: 16px; margin-top: 10px; }
-.pomo-slider { -webkit-appearance: none; width: 100%; height: 4px; background: var(--surface2); border-radius: 4px; outline: none; }
-.pomo-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--pri); cursor: pointer; }
-.pomo-slider-val { font-size: 13px; font-weight: 400; color: var(--text-sec); }
-.pomo-break-opts { display: none; margin-top: 20px; width: 100%; max-width: 300px; }
 
 /* ============================================================
    RUTINA
@@ -312,22 +310,6 @@ svg { flex-shrink: 0; }
 .modal-close { width: 40px; height: 40px; border-radius: 50%; background: var(--surface2); display: flex; align-items: center; justify-content: center; }
 .modal-close svg { width: 18px; height: 18px; stroke: var(--text-pri); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .modal-content { flex: 1; overflow-y: auto; padding-bottom: 20px; }
-.comm-tabs { display: flex; padding: 16px; gap: 8px; }
-.comm-tab { flex: 1; padding: 11px; border-radius: var(--radius-ctl); background: transparent; border: 1px solid var(--border); font-size: 13px; font-weight: 400; color: var(--text-sec); transition: all var(--trans); }
-.comm-tab.active { background: var(--surface2); border-color: var(--border); color: var(--text-pri); font-weight: 500; }
-.comm-pane { display: none; }
-.comm-pane.active { display: block; }
-.league-hero { margin: 0 20px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; text-align: center; }
-.league-icon { font-size: 40px; margin-bottom: 12px; }
-.league-name { font-size: 22px; font-weight: 600; color: var(--text-pri); }
-.league-sub { font-size: 13px; color: var(--text-sec); font-weight: 400; margin-top: 4px; }
-.leaderboard { padding: 0 20px; }
-.lb-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
-.lb-rank { width: 26px; font-size: 14px; font-weight: 500; text-align: center; color: var(--text-sec); }
-.lb-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--surface2); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 500; }
-.lb-name { flex: 1; font-size: 15px; font-weight: 400; }
-.lb-xp { font-size: 14px; font-weight: 500; color: var(--pri); }
-.lb-item.me { background: var(--pri-dim); margin: 0 -20px; padding: 12px 20px; }
 .friend-code-box { margin: 0 20px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; text-align: center; }
 .fc-label { font-size: 13px; color: var(--text-sec); font-weight: 400; margin-bottom: 12px; }
 .fc-code { font-size: 24px; font-weight: 600; letter-spacing: 5px; color: var(--pri); margin-bottom: 16px; }
@@ -371,28 +353,36 @@ svg { flex-shrink: 0; }
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: none; } }
 #routine-editor { position: fixed; inset: 0; z-index: 300; background: var(--bg); overflow-y: auto; display: none; flex-direction: column; transform: translateX(100%); transition: transform .35s cubic-bezier(.4,0,.2,1); }
 #routine-editor.open { display: flex; transform: none; }
-.editor-header { background: var(--bg); border-bottom: 1px solid var(--border); padding: calc(16px + env(safe-area-inset-top, 0px)) 16px 16px; display: flex; align-items: center; gap: 16px; position: sticky; top: 0; z-index: 10; }
-.editor-header h2 { flex: 1; font-size: 18px; font-weight: 600; }
-.back-btn { width: 40px; height: 40px; border-radius: 50%; background: var(--surface2); display: flex; align-items: center; justify-content: center; }
-.save-routine-btn { background: var(--pri); color: #fff; border-radius: var(--radius-ctl); padding: 10px 16px; font-size: 13px; font-weight: 500; }
-.exercise-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin: 8px 20px; overflow: hidden; }
-.exercise-header { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--border); }
-.ex-name { flex: 1; font-size: 15px; font-weight: 500; }
-.ex-history { font-size: 12px; color: var(--text-sec); font-weight: 400; padding: 8px 16px; }
+.editor-topbar { background: var(--bg); padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 8px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+.icon-btn { width: 40px; height: 40px; border-radius: 50%; background: var(--surface2); display: flex; align-items: center; justify-content: center; }
+.finish-btn { background: var(--pri); color: #fff; border-radius: 20px; padding: 10px 20px; font-size: 14px; font-weight: 600; }
+.finish-btn:active { opacity: .85; }
+.editor-titlewrap { background: var(--bg); padding: 4px 20px 14px; position: sticky; top: calc(62px + env(safe-area-inset-top, 0px)); z-index: 9; }
+.editor-bigtitle { font-size: 26px; font-weight: 700; letter-spacing: -0.3px; color: var(--text-pri); }
+.editor-timer { font-size: 14px; color: var(--text-sec); font-weight: 500; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.exercise-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin: 10px 20px; overflow: hidden; }
+.exercise-header { display: flex; align-items: center; gap: 10px; padding: 16px 16px 12px; }
+.ex-info { flex: 1; min-width: 0; }
+.ex-name { font-size: 16px; font-weight: 600; color: var(--text-pri); }
+.ex-muscle { font-size: 13px; color: var(--text-sec); font-weight: 400; margin-top: 2px; }
+.ex-history { font-size: 12px; color: var(--text-sec); font-weight: 400; padding: 0 16px 4px; }
 .ex-actions { display: flex; gap: 6px; }
 .ex-action-btn { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: var(--surface2); }
 .ex-action-btn svg { width: 14px; height: 14px; stroke: var(--text-sec); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .ex-action-btn.danger svg { stroke: var(--danger); }
-.sets-header { display: grid; grid-template-columns: 28px 1fr 1fr 60px 28px; gap: 8px; padding: 8px 16px; font-size: 11px; font-weight: 400; color: var(--text-sec); }
-.set-row { display: grid; grid-template-columns: 28px 1fr 1fr 60px 28px; gap: 8px; padding: 8px 16px; align-items: center; }
-.set-row.done { opacity: .45; }
-.set-num { font-size: 13px; font-weight: 500; color: var(--text-sec); text-align: center; }
-.set-input, .rpe-select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 8px; text-align: center; font-size: 14px; font-weight: 500; color: var(--text-pri); width: 100%; outline: none; }
-.set-check { width: 28px; height: 28px; border: 1.5px solid var(--border); border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all .2s; }
+.sets-header { display: grid; grid-template-columns: 34px 1fr 1fr 34px 30px; gap: 8px; padding: 6px 16px; font-size: 11px; font-weight: 500; letter-spacing: .3px; color: var(--text-sec); text-transform: uppercase; }
+.sets-header span { text-align: center; }
+.sets-header span:first-child { text-align: left; }
+.set-row { display: grid; grid-template-columns: 34px 1fr 1fr 34px 30px; gap: 8px; padding: 6px 16px; align-items: center; }
+.set-row.done { opacity: .5; }
+.set-num { font-size: 14px; font-weight: 600; color: var(--text-sec); text-align: left; padding-left: 4px; }
+.set-input { background: var(--surface2); border: 1px solid transparent; border-radius: 8px; padding: 9px; text-align: center; font-size: 15px; font-weight: 600; color: var(--text-pri); width: 100%; outline: none; }
+.set-input:focus { border-color: var(--pri); }
+.set-check { width: 34px; height: 34px; border: 1.5px solid var(--border); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all .2s; }
 .set-check.done { background: var(--pri); border-color: var(--pri); }
-.set-check svg { width: 14px; height: 14px; stroke: #fff; fill: none; stroke-width: 3; opacity: 0; }
+.set-check svg { width: 15px; height: 15px; stroke: #fff; fill: none; stroke-width: 3; opacity: 0; }
 .set-check.done svg { opacity: 1; }
-.set-del { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.set-del { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 .set-del svg { width: 16px; height: 16px; stroke: var(--text-sec); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .add-set-btn { margin: 8px 16px 16px; padding: 10px; border: 1px dashed var(--border); border-radius: var(--radius-ctl); display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; font-weight: 400; color: var(--text-sec); cursor: pointer; }
 .add-set-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
@@ -455,27 +445,40 @@ svg { flex-shrink: 0; }
 
     <section class="page active" id="page-dashboard">
       <div class="home">
-        <div class="home-row">
-          <span class="home-date" id="home-date">Hoy</span>
+        <div class="home-topbar">
+          <img src="logo peque.png" alt="Zenit" class="home-logo" onerror="this.style.display='none'"/>
           <button id="avatar-btn" aria-label="Menú de cuenta">
             <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
           </button>
         </div>
-
-        <div class="home-hero">
-          <div class="home-label">Hoy toca</div>
-          <h1 class="home-routine" id="home-routine">Descanso</h1>
-          <div class="home-sub" id="home-sub">Día de descanso</div>
+        <div class="home-greet">
+          <h1 class="home-greet-title" id="home-greet-title">Buenos días</h1>
+          <div class="home-greet-sub" id="home-greeting">Semana 1/52 del año</div>
         </div>
 
-        <div class="ex-preview" id="home-ex-card"></div>
+        <button class="workout-card" id="home-cta">
+          <div class="workout-card-info">
+            <div class="workout-card-title" id="home-routine">Descanso</div>
+            <div class="workout-card-sub" id="home-sub">Día de descanso</div>
+          </div>
+          <span class="workout-card-arrow">
+            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+          </span>
+        </button>
 
-        <button class="home-cta" id="home-cta">Empezar entreno</button>
-
-        <div class="home-metrics">
-          <div class="metric"><div class="metric-l">Esta semana</div><div class="metric-v" id="m-week">0</div></div>
-          <div class="metric"><div class="metric-l">Este mes</div><div class="metric-v" id="m-month">0</div></div>
-          <div class="metric"><div class="metric-l">Racha</div><div class="metric-v" id="m-streak">0 d</div></div>
+        <div class="weeks-widget">
+          <div class="weeks-head">
+            <div>
+              <div class="weeks-title">Últimas 2 semanas</div>
+              <div class="weeks-range" id="weeks-range">—</div>
+            </div>
+            <div class="weeks-count">
+              <div class="weeks-count-num" id="weeks-active">0</div>
+              <div class="weeks-count-lbl">días activos</div>
+            </div>
+          </div>
+          <div class="weeks-dows"><span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
+          <div class="weeks-grid" id="weeks-grid"></div>
         </div>
 
         <div class="home-sec">Tareas de hoy</div>
@@ -529,30 +532,6 @@ svg { flex-shrink: 0; }
         <input type="date" class="stacked-input" id="goal-date-input"/>
         <button id="goal-add-btn" class="btn-primary-large" style="margin-bottom: 16px;">Añadir meta</button>
         <div id="goals-list" class="active-items-list" style="margin-top:0;"></div>
-      </div>
-    </section>
-
-    <section class="page" id="page-pomodoro">
-      <div class="page-header">
-        <h1 class="ph-title white">Pomodoro</h1>
-      </div>
-      <div class="pomodoro-container">
-         <div class="pomo-timer" id="pomo-timer">25:00</div>
-
-         <div class="pomo-slider-container">
-           <input type="range" id="pomo-slider" min="1" max="60" value="25" class="pomo-slider">
-           <div class="pomo-slider-val" id="pomo-slider-val">25 min</div>
-         </div>
-
-         <div class="pomo-controls" style="margin-top: 24px;">
-            <button id="pomo-btn-start" class="btn-primary-large">Iniciar</button>
-            <button id="pomo-btn-pause" class="btn-primary-large" style="display:none; background:var(--surface2); color:var(--text-pri);">Pausar</button>
-            <button id="pomo-btn-reset" class="btn-primary-large" style="background:transparent; border:1px solid var(--border); color:var(--text-pri);">Reiniciar</button>
-         </div>
-
-         <div class="pomo-break-opts" id="pomo-break-opts">
-            <button id="pomo-btn-break" class="btn-primary-large">Descansar 5 min</button>
-         </div>
       </div>
     </section>
 
@@ -620,9 +599,6 @@ svg { flex-shrink: 0; }
         <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
       </svg>
     </div>
-    <div class="nav-item" data-page="pomodoro" aria-label="Pomodoro">
-      <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
-    </div>
     <div class="nav-item" data-page="constancia" aria-label="Constancia">
       <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
     </div>
@@ -638,11 +614,11 @@ svg { flex-shrink: 0; }
     <div class="sidebar-email" id="sb-email">Sin sesión iniciada</div>
     <div class="level-badge">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--pri)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-      <span id="sb-level">Nivel 1 · Bronce</span>
+      <span id="sb-level">Nivel 1</span>
     </div>
   </div>
   <div class="sidebar-menu">
-    <div class="sidebar-item" id="open-community"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Amigos y ligas</div>
+    <div class="sidebar-item" id="open-community"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Amigos</div>
     <div class="sidebar-item" id="open-settings-menu"><svg viewBox="0 0 24 24"><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Ajustes</div>
   </div>
   <div class="sidebar-auth">
@@ -653,12 +629,12 @@ svg { flex-shrink: 0; }
 <div class="fullscreen-modal" id="modal-community">
   <div class="modal-header">
     <button class="modal-close" id="close-community"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-    <h2>Comunidad</h2>
+    <h2>Amigos</h2>
   </div>
-  <div class="modal-content">
-    <div class="comm-tabs"><button class="comm-tab active" data-pane="league">Mi liga</button><button class="comm-tab" data-pane="friends">Amigos</button></div>
-    <div class="comm-pane active" id="pane-league"><div class="league-hero"><div class="league-icon" id="league-icon">🥉</div><div class="league-name" id="league-name">Liga Bronce</div><div class="league-sub" id="league-sub">Top 3 ascienden el lunes</div></div><div style="padding: 0 20px;"><span class="section-title">Clasificación semanal</span></div><div class="leaderboard" id="leaderboard"></div></div>
-    <div class="comm-pane" id="pane-friends"><div class="friend-code-box"><div class="fc-label">Tu código de amigo</div><div class="fc-code" id="friend-code-display">--------</div><button class="copy-btn" id="copy-code-btn"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copiar código</button></div><div class="friend-add-row"><input class="stacked-input" style="margin:0; flex:1;" id="friend-code-input" placeholder="Código (8 caracteres)…" maxlength="8"/><button class="btn-square-add" id="add-friend-btn" style="width: 46px; height: 46px;"><svg viewBox="0 0 24 24" width="24" height="24"><line x1="12" y1="5" x2="12" y2="19" stroke="white" stroke-width="2" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke="white" stroke-width="2" stroke-linecap="round"/></svg></button></div><div id="friends-list"></div></div>
+  <div class="modal-content" style="padding-top:16px;">
+    <div class="friend-code-box"><div class="fc-label">Tu código de amigo</div><div class="fc-code" id="friend-code-display">--------</div><button class="copy-btn" id="copy-code-btn"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copiar código</button></div>
+    <div class="friend-add-row"><input class="stacked-input" style="margin:0; flex:1;" id="friend-code-input" placeholder="Código (8 caracteres)…" maxlength="8"/><button class="btn-square-add" id="add-friend-btn" style="width: 46px; height: 46px;"><svg viewBox="0 0 24 24" width="24" height="24"><line x1="12" y1="5" x2="12" y2="19" stroke="white" stroke-width="2" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke="white" stroke-width="2" stroke-linecap="round"/></svg></button></div>
+    <div id="friends-list"></div>
   </div>
 </div>
 
@@ -695,10 +671,13 @@ svg { flex-shrink: 0; }
 <div id="energy-modal"><div id="energy-card"><h3>¿Cómo te sientes?</h3><p>Registra tu nivel de energía tras entrenar</p><div class="energy-faces" id="energy-faces"></div></div></div>
 
 <div id="routine-editor">
-  <div class="editor-header">
-    <button class="back-btn" id="editor-back"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" stroke="var(--text-pri)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-    <h2 id="editor-title">Lunes</h2>
-    <button class="save-routine-btn" id="save-routine-btn">Guardar</button>
+  <div class="editor-topbar">
+    <button class="icon-btn" id="editor-back" aria-label="Cerrar"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M18 6L6 18M6 6l12 12" stroke="var(--text-pri)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <button class="finish-btn" id="save-routine-btn">Finalizar</button>
+  </div>
+  <div class="editor-titlewrap">
+    <h2 class="editor-bigtitle" id="editor-title">Lunes</h2>
+    <div class="editor-timer" id="editor-timer">0:00</div>
   </div>
   <div id="exercise-list" style="flex:1;overflow-y:auto;padding:8px 0"></div>
   <button class="add-exercise-btn" id="add-exercise-btn"><svg width="18" height="18" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>Añadir ejercicio</button>
