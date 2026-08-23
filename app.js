@@ -651,6 +651,8 @@ const RoutineModule = (() => {
         if (!s.recentExercises.includes(ex.name)) { s.recentExercises.unshift(ex.name); if (s.recentExercises.length > 5) s.recentExercises.pop(); }
       }
     });
+    // Al finalizar, desmarcamos todas las series (se conservan peso y reps como plantilla para la próxima).
+    item.exercises.forEach(ex => ex.sets.forEach(set => { set.done = false; }));
     if (!s.gymDays.includes(today)) { s.gymDays.push(today); XPModule.addXP(50); }
     StateModule.save(); closeEditor(); DashboardModule.render(); ConstanciaModule.render();
     if (prs.length) { UIModule.toast(prs.length === 1 ? `🏆 ¡Nuevo récord en ${prs[0]}!` : `🏆 ¡${prs.length} récords nuevos!`, 'success', 4200); haptic(); }
