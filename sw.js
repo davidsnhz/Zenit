@@ -1,10 +1,10 @@
 /* ============================================================
-   ZENIT – Service Worker v10
+   ZENIT – Service Worker v11
    ============================================================ */
-const CACHE_NAME = 'zenit-v10';
+const CACHE_NAME = 'zenit-v11';
 const CORE_ASSETS = [
   '/', '/index.html', '/app.js', '/manifest.json',
-  '/logo peque.png',
+  '/logoblanco.png', '/logo peque.png',
   '/icon-192.png', '/icon-512.png', '/apple-touch-icon.png',
   '/favicon-32.png', '/favicon-16.png'
 ];

@@ -129,8 +129,8 @@ svg { flex-shrink: 0; }
    ============================================================ */
 .home { padding: 18px 20px 8px; }
 .home-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-.home-logo { height: 26px; width: auto; filter: brightness(0) invert(1); opacity: .92; }
-[data-theme="light"] .home-logo { filter: none; }
+.home-logo { height: 30px; width: auto; max-width: 60%; object-fit: contain; opacity: .95; }
+[data-theme="light"] .home-logo { filter: brightness(0); }
 .home-greet-title { font-size: 30px; font-weight: 700; letter-spacing: -0.5px; color: var(--text-pri); line-height: 1.1; }
 .home-greet-sub { font-size: 14px; color: var(--text-sec); font-weight: 400; margin-top: 4px; }
 
@@ -401,9 +401,10 @@ svg { flex-shrink: 0; }
 .chip.active { background: var(--surface2); border-color: var(--text-faint); color: var(--text-pri); font-weight: 500; }
 .sheet-exercises { flex: 1; overflow-y: auto; padding: 0 20px; }
 .ex-group-title { font-size: 12px; font-weight: 400; color: var(--text-sec); padding: 12px 0 8px; }
-.ex-list-item { display: flex; align-items: center; gap: 10px; padding: 13px 0; border-bottom: 1px solid var(--border); cursor: pointer; }
-.eli-name { flex: 1 1 auto; min-width: 0; font-size: 14px; font-weight: 400; line-height: 1.3; overflow-wrap: anywhere; }
-.eli-eq { font-size: 11px; color: var(--text-sec); background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 3px 8px; white-space: nowrap; flex-shrink: 0; }
+.ex-list-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); cursor: pointer; }
+.eli-main { flex: 1; min-width: 0; }
+.eli-name { font-size: 14px; font-weight: 500; color: var(--text-pri); line-height: 1.3; overflow-wrap: anywhere; }
+.eli-eq { font-size: 12px; font-weight: 400; color: var(--text-sec); margin-top: 2px; }
 .ex-list-item svg { stroke: var(--pri); flex-shrink: 0; }
 .sheet-custom-btn { margin: 12px 20px calc(16px + env(safe-area-inset-bottom, 0px)); padding: 12px; border-radius: var(--radius-ctl); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; font-weight: 500; color: var(--text-sec); }
 .sheet-custom-btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
@@ -436,7 +437,7 @@ svg { flex-shrink: 0; }
     <section class="page active" id="page-dashboard">
       <div class="home">
         <div class="home-topbar">
-          <img src="logo peque.png" alt="Zenit" class="home-logo" onerror="this.style.display='none'"/>
+          <img src="logoblanco.png" alt="Zenit" class="home-logo" onerror="this.style.display='none'"/>
           <button id="avatar-btn" aria-label="Menú de cuenta">
             <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
           </button>
