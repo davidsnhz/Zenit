@@ -397,8 +397,8 @@ svg { flex-shrink: 0; }
 .sheet-search { width: calc(100% - 40px); margin: 0 20px 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-ctl); padding: 11px 14px; font-size: 14px; color: var(--text-pri); outline: none; }
 .filter-chips { display: flex; gap: 8px; padding: 0 20px 12px; overflow-x: auto; scrollbar-width: none; }
 .filter-chips::-webkit-scrollbar { display: none; }
-.chip { flex-shrink: 0; padding: 7px 14px; border-radius: 20px; background: transparent; border: 1px solid var(--border); font-size: 13px; font-weight: 400; color: var(--text-sec); cursor: pointer; }
-.chip.active { background: var(--surface2); border-color: var(--text-faint); color: var(--text-pri); font-weight: 500; }
+.chip { flex-shrink: 0; min-width: 76px; text-align: center; padding: 8px 16px; border-radius: 20px; background: transparent; border: 1px solid var(--border); font-size: 13px; font-weight: 500; color: var(--text-sec); cursor: pointer; }
+.chip.active { background: var(--surface2); border-color: var(--text-faint); color: var(--text-pri); }
 .sheet-exercises { flex: 1; overflow-y: auto; padding: 0 20px; }
 .ex-group-title { font-size: 12px; font-weight: 400; color: var(--text-sec); padding: 12px 0 8px; }
 .ex-list-item { display: flex; align-items: center; gap: 10px; padding: 13px 0; border-bottom: 1px solid var(--border); cursor: pointer; }
