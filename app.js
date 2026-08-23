@@ -683,7 +683,7 @@ const ExerciseSheetModule = (() => {
     const groups = {}; filtered.forEach(e => { if (!groups[e.muscle]) groups[e.muscle] = []; groups[e.muscle].push(e); });
     Object.entries(groups).forEach(([muscle, exs]) => {
       if (activeFilter === 'Todos') html += `<div class="ex-group-title">${muscle}</div>`;
-      exs.forEach(e => { html += `<div class="ex-list-item" data-name="${escHtml(e.name)}"><div class="eli-main"><div class="eli-name">${escHtml(e.name)}</div>${e.equip ? `<div class="eli-eq">${escHtml(e.equip)}</div>` : ''}</div><svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="var(--pri)" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg></div>`; });
+      exs.forEach(e => { html += `<div class="ex-list-item" data-name="${escHtml(e.name)}"><div class="eli-name">${escHtml(e.name)}</div>${e.equip ? `<span class="eli-eq">${escHtml(e.equip)}</span>` : ''}<svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="var(--pri)" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg></div>`; });
     });
     if (!filtered.length) html = '<div style="padding:20px;text-align:center;color:var(--text-sec);">No se encontraron ejercicios</div>'; container.innerHTML = html;
     container.querySelectorAll('.ex-list-item').forEach(el => { el.addEventListener('click', () => { addExercise(el.dataset.name); close(); }); });
