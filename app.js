@@ -25,15 +25,106 @@ const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', '
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const MONTHS_SHORT = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 const EXERCISE_DB = [
-  { name: 'Press de Banca', muscle: 'Pecho' }, { name: 'Press Inclinado', muscle: 'Pecho' },
-  { name: 'Peso Muerto', muscle: 'Espalda' }, { name: 'Dominadas', muscle: 'Espalda' },
-  { name: 'Press Militar', muscle: 'Hombros' }, { name: 'Elevaciones Laterales', muscle: 'Hombros' },
-  { name: 'Curl con Barra', muscle: 'Bíceps' }, { name: 'Press Francés', muscle: 'Tríceps' },
-  { name: 'Sentadilla Libre', muscle: 'Piernas' }, { name: 'Prensa de Pierna', muscle: 'Piernas' },
-  { name: 'Hip Thrust', muscle: 'Glúteos' }, { name: 'Plancha', muscle: 'Core' },
-  { name: 'Correr', muscle: 'Cardio' }
+  // ---- Pecho ----
+  { name: 'Press de Banca', muscle: 'Pecho', equip: 'Barra' },
+  { name: 'Press Inclinado', muscle: 'Pecho', equip: 'Barra' },
+  { name: 'Press Declinado', muscle: 'Pecho', equip: 'Barra' },
+  { name: 'Press de Banca con Mancuernas', muscle: 'Pecho', equip: 'Mancuerna' },
+  { name: 'Press Inclinado con Mancuernas', muscle: 'Pecho', equip: 'Mancuerna' },
+  { name: 'Aperturas con Mancuernas', muscle: 'Pecho', equip: 'Mancuerna' },
+  { name: 'Cruces en Polea', muscle: 'Pecho', equip: 'Polea' },
+  { name: 'Contractor de Pecho', muscle: 'Pecho', equip: 'Máquina' },
+  { name: 'Press en Máquina', muscle: 'Pecho', equip: 'Máquina' },
+  { name: 'Fondos en Paralelas', muscle: 'Pecho', equip: 'Peso corp.' },
+  { name: 'Flexiones', muscle: 'Pecho', equip: 'Peso corp.' },
+  { name: 'Pullover con Mancuerna', muscle: 'Pecho', equip: 'Mancuerna' },
+  // ---- Espalda ----
+  { name: 'Peso Muerto', muscle: 'Espalda', equip: 'Barra' },
+  { name: 'Dominadas', muscle: 'Espalda', equip: 'Peso corp.' },
+  { name: 'Jalón al Pecho', muscle: 'Espalda', equip: 'Polea' },
+  { name: 'Jalón Agarre Cerrado', muscle: 'Espalda', equip: 'Polea' },
+  { name: 'Remo con Barra', muscle: 'Espalda', equip: 'Barra' },
+  { name: 'Remo con Mancuerna', muscle: 'Espalda', equip: 'Mancuerna' },
+  { name: 'Remo en Punta (T)', muscle: 'Espalda', equip: 'Barra' },
+  { name: 'Remo en Polea Baja', muscle: 'Espalda', equip: 'Polea' },
+  { name: 'Remo en Máquina', muscle: 'Espalda', equip: 'Máquina' },
+  { name: 'Pull-over en Polea', muscle: 'Espalda', equip: 'Polea' },
+  { name: 'Encogimientos (Trapecio)', muscle: 'Espalda', equip: 'Mancuerna' },
+  { name: 'Face Pull', muscle: 'Espalda', equip: 'Polea' },
+  { name: 'Hiperextensiones', muscle: 'Espalda', equip: 'Peso corp.' },
+  // ---- Hombros ----
+  { name: 'Press Militar', muscle: 'Hombros', equip: 'Barra' },
+  { name: 'Press Militar con Mancuernas', muscle: 'Hombros', equip: 'Mancuerna' },
+  { name: 'Press Arnold', muscle: 'Hombros', equip: 'Mancuerna' },
+  { name: 'Elevaciones Laterales', muscle: 'Hombros', equip: 'Mancuerna' },
+  { name: 'Elevaciones Laterales en Polea', muscle: 'Hombros', equip: 'Polea' },
+  { name: 'Elevaciones Frontales', muscle: 'Hombros', equip: 'Mancuerna' },
+  { name: 'Pájaros (Deltoide Post.)', muscle: 'Hombros', equip: 'Mancuerna' },
+  { name: 'Deltoide Posterior en Máquina', muscle: 'Hombros', equip: 'Máquina' },
+  { name: 'Press de Hombro en Máquina', muscle: 'Hombros', equip: 'Máquina' },
+  { name: 'Remo al Mentón', muscle: 'Hombros', equip: 'Barra' },
+  // ---- Bíceps ----
+  { name: 'Curl con Barra', muscle: 'Bíceps', equip: 'Barra' },
+  { name: 'Curl con Barra Z', muscle: 'Bíceps', equip: 'Barra' },
+  { name: 'Curl con Mancuernas', muscle: 'Bíceps', equip: 'Mancuerna' },
+  { name: 'Curl Alterno', muscle: 'Bíceps', equip: 'Mancuerna' },
+  { name: 'Curl Martillo', muscle: 'Bíceps', equip: 'Mancuerna' },
+  { name: 'Curl Concentrado', muscle: 'Bíceps', equip: 'Mancuerna' },
+  { name: 'Curl en Banco Scott', muscle: 'Bíceps', equip: 'Barra' },
+  { name: 'Curl en Polea', muscle: 'Bíceps', equip: 'Polea' },
+  // ---- Tríceps ----
+  { name: 'Press Francés', muscle: 'Tríceps', equip: 'Barra' },
+  { name: 'Extensión en Polea', muscle: 'Tríceps', equip: 'Polea' },
+  { name: 'Extensión sobre la Cabeza', muscle: 'Tríceps', equip: 'Mancuerna' },
+  { name: 'Fondos entre Bancos', muscle: 'Tríceps', equip: 'Peso corp.' },
+  { name: 'Patada de Tríceps', muscle: 'Tríceps', equip: 'Mancuerna' },
+  { name: 'Press Cerrado', muscle: 'Tríceps', equip: 'Barra' },
+  { name: 'Extensión con Cuerda', muscle: 'Tríceps', equip: 'Polea' },
+  // ---- Piernas ----
+  { name: 'Sentadilla Libre', muscle: 'Piernas', equip: 'Barra' },
+  { name: 'Sentadilla Frontal', muscle: 'Piernas', equip: 'Barra' },
+  { name: 'Prensa de Pierna', muscle: 'Piernas', equip: 'Máquina' },
+  { name: 'Extensión de Cuádriceps', muscle: 'Piernas', equip: 'Máquina' },
+  { name: 'Curl Femoral Tumbado', muscle: 'Piernas', equip: 'Máquina' },
+  { name: 'Curl Femoral Sentado', muscle: 'Piernas', equip: 'Máquina' },
+  { name: 'Zancadas', muscle: 'Piernas', equip: 'Mancuerna' },
+  { name: 'Sentadilla Búlgara', muscle: 'Piernas', equip: 'Mancuerna' },
+  { name: 'Sentadilla Hack', muscle: 'Piernas', equip: 'Máquina' },
+  { name: 'Peso Muerto Rumano', muscle: 'Piernas', equip: 'Barra' },
+  { name: 'Sentadilla Goblet', muscle: 'Piernas', equip: 'Mancuerna' },
+  { name: 'Gemelo de Pie', muscle: 'Piernas', equip: 'Máquina' },
+  { name: 'Gemelo Sentado', muscle: 'Piernas', equip: 'Máquina' },
+  // ---- Glúteos ----
+  { name: 'Hip Thrust', muscle: 'Glúteos', equip: 'Barra' },
+  { name: 'Puente de Glúteo', muscle: 'Glúteos', equip: 'Peso corp.' },
+  { name: 'Patada de Glúteo en Polea', muscle: 'Glúteos', equip: 'Polea' },
+  { name: 'Abducción en Máquina', muscle: 'Glúteos', equip: 'Máquina' },
+  { name: 'Peso Muerto Sumo', muscle: 'Glúteos', equip: 'Barra' },
+  { name: 'Zancada Caminando', muscle: 'Glúteos', equip: 'Mancuerna' },
+  // ---- Core ----
+  { name: 'Plancha', muscle: 'Core', equip: 'Peso corp.' },
+  { name: 'Plancha Lateral', muscle: 'Core', equip: 'Peso corp.' },
+  { name: 'Crunch Abdominal', muscle: 'Core', equip: 'Peso corp.' },
+  { name: 'Elevación de Piernas', muscle: 'Core', equip: 'Peso corp.' },
+  { name: 'Rueda Abdominal', muscle: 'Core', equip: 'Rueda' },
+  { name: 'Giro Ruso', muscle: 'Core', equip: 'Mancuerna' },
+  { name: 'Crunch en Polea', muscle: 'Core', equip: 'Polea' },
+  { name: 'Elevación de Rodillas Colgado', muscle: 'Core', equip: 'Peso corp.' },
+  // ---- Antebrazo ----
+  { name: 'Curl de Muñeca', muscle: 'Antebrazo', equip: 'Barra' },
+  { name: 'Curl de Muñeca Inverso', muscle: 'Antebrazo', equip: 'Barra' },
+  { name: 'Paseo del Granjero', muscle: 'Antebrazo', equip: 'Mancuerna' },
+  // ---- Cardio ----
+  { name: 'Correr', muscle: 'Cardio', equip: 'Peso corp.' },
+  { name: 'Cinta de Correr', muscle: 'Cardio', equip: 'Máquina' },
+  { name: 'Bicicleta Estática', muscle: 'Cardio', equip: 'Máquina' },
+  { name: 'Elíptica', muscle: 'Cardio', equip: 'Máquina' },
+  { name: 'Remo (Máquina)', muscle: 'Cardio', equip: 'Máquina' },
+  { name: 'Saltar Comba', muscle: 'Cardio', equip: 'Peso corp.' },
+  { name: 'Burpees', muscle: 'Cardio', equip: 'Peso corp.' },
+  { name: 'Escaladora', muscle: 'Cardio', equip: 'Máquina' }
 ];
-const MUSCLE_FILTERS = ['Todos','Pecho','Espalda','Hombros','Bíceps','Tríceps','Piernas','Glúteos','Core','Cardio'];
+const MUSCLE_FILTERS = ['Todos','Pecho','Espalda','Hombros','Bíceps','Tríceps','Piernas','Glúteos','Core','Antebrazo','Cardio'];
 
 /* ─────────────────────────────────────────────
    STATE MODULE
@@ -546,17 +637,24 @@ const RoutineModule = (() => {
   function updateVolume() { const item = getCurrentItem(); const s = StateModule.get(); let total = 0; item.exercises.forEach(ex => { ex.sets.forEach(set => { if (set.done) total += (set.weight || 0) * (set.reps || 0); }); }); document.getElementById('vol-value').textContent = `${total.toFixed(0)} ${s.settings.weightUnit}`; }
   function saveRoutine() {
     const item = getCurrentItem(); const s = StateModule.get(); const today = StreakModule.todayStr();
+    const prs = [];
     item.exercises.forEach(ex => {
       const doneSets = ex.sets.filter(set => set.done);
       if (doneSets.length) {
         if (!s.exerciseHistory[ex.name]) s.exerciseHistory[ex.name] = [];
-        const best = doneSets.reduce((b, c) => (c.weight * c.reps > b.weight * b.reps ? c : b));
+        // Mejor serie de la sesión por 1RM estimado (mejor indicador de récord).
+        const best = doneSets.reduce((b, c) => (RecordsModule.e1rm(c.weight, c.reps) >= RecordsModule.e1rm(b.weight, b.reps) ? c : b));
+        // ¿Récord? Solo con peso y solo si SUPERA una marca previa (no en el primer registro).
+        const prev = RecordsModule.prevBest(ex.name);
+        if (best.weight > 0 && prev > 0 && RecordsModule.e1rm(best.weight, best.reps) > prev) prs.push(ex.name);
         s.exerciseHistory[ex.name].push({ date: today, weight: best.weight, reps: best.reps });
         if (!s.recentExercises.includes(ex.name)) { s.recentExercises.unshift(ex.name); if (s.recentExercises.length > 5) s.recentExercises.pop(); }
       }
     });
     if (!s.gymDays.includes(today)) { s.gymDays.push(today); XPModule.addXP(50); }
-    StateModule.save(); closeEditor(); DashboardModule.render(); ConstanciaModule.render(); EnergyModule.open();
+    StateModule.save(); closeEditor(); DashboardModule.render(); ConstanciaModule.render();
+    if (prs.length) { UIModule.toast(prs.length === 1 ? `🏆 ¡Nuevo récord en ${prs[0]}!` : `🏆 ¡${prs.length} récords nuevos!`, 'success', 4200); haptic(); }
+    EnergyModule.open();
   }
   function startRestTimer() {
     const s = StateModule.get(); restSeconds = s.settings.restDuration; stopRestTimer();
@@ -583,7 +681,7 @@ const ExerciseSheetModule = (() => {
     const groups = {}; filtered.forEach(e => { if (!groups[e.muscle]) groups[e.muscle] = []; groups[e.muscle].push(e); });
     Object.entries(groups).forEach(([muscle, exs]) => {
       if (activeFilter === 'Todos') html += `<div class="ex-group-title">${muscle}</div>`;
-      exs.forEach(e => { html += `<div class="ex-list-item" data-name="${escHtml(e.name)}"><div class="eli-name">${escHtml(e.name)}</div><svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="var(--pri)" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg></div>`; });
+      exs.forEach(e => { html += `<div class="ex-list-item" data-name="${escHtml(e.name)}"><div class="eli-name">${escHtml(e.name)}</div>${e.equip ? `<span class="eli-eq">${escHtml(e.equip)}</span>` : ''}<svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="var(--pri)" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg></div>`; });
     });
     if (!filtered.length) html = '<div style="padding:20px;text-align:center;color:var(--text-sec);">No se encontraron ejercicios</div>'; container.innerHTML = html;
     container.querySelectorAll('.ex-list-item').forEach(el => { el.addEventListener('click', () => { addExercise(el.dataset.name); close(); }); });
@@ -598,6 +696,45 @@ const ExerciseSheetModule = (() => {
   }
   function openCustomModal() { close(); UIModule.openModal('custom-ex-modal'); document.getElementById('custom-ex-input').value = ''; }
   return { open, close, renderExercises, openCustomModal, addExercise };
+})();
+
+/* ─────────────────────────────────────────────
+   RECORDS MODULE (récords personales)
+   ───────────────────────────────────────────── */
+const RecordsModule = (() => {
+  // 1RM estimado (fórmula de Epley). Sin peso o sin reps => 0.
+  function e1rm(w, r) { return w > 0 && r > 0 ? Math.round(w * (1 + r / 30)) : 0; }
+  // Mejor 1RM previo de un ejercicio, derivado del historial ya guardado.
+  function prevBest(name) {
+    const entries = (StateModule.get().exerciseHistory || {})[name] || [];
+    let best = 0;
+    entries.forEach(en => { if (en.weight > 0) best = Math.max(best, e1rm(en.weight, en.reps)); });
+    return best;
+  }
+  // Lista de récords (uno por ejercicio con peso), del más reciente al más antiguo.
+  function all() {
+    const hist = StateModule.get().exerciseHistory || {}; const list = [];
+    for (const name in hist) {
+      let best = null;
+      (hist[name] || []).forEach(en => {
+        if (!(en.weight > 0)) return;
+        const v = e1rm(en.weight, en.reps);
+        if (!best || v > best.e1rm) best = { name, weight: en.weight, reps: en.reps, e1rm: v, date: en.date };
+      });
+      if (best) list.push(best);
+    }
+    list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    return list;
+  }
+  function render() {
+    const list = document.getElementById('records-list'); if (!list) return;
+    const recs = all();
+    if (!recs.length) { list.innerHTML = '<div class="rec-empty">Aún no tienes récords. Completa series con peso al entrenar y se registrarán aquí.</div>'; return; }
+    const unit = StateModule.get().settings.weightUnit || 'kg';
+    const medal = '<svg viewBox="0 0 24 24" width="18" height="18" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0V4zM5 6H3v2a3 3 0 0 0 3 3M19 6h2v2a3 3 0 0 1-3 3"/></svg>';
+    list.innerHTML = recs.map(r => `<div class="rec-item"><div class="rec-medal">${medal}</div><div class="rec-info"><div class="rec-name">${escHtml(r.name)}</div><div class="rec-sub"><b>${r.weight} ${unit} × ${r.reps}</b> · 1RM ${r.e1rm} ${unit}</div></div><div class="rec-date">${r.date ? formatDate(r.date) : ''}</div></div>`).join('');
+  }
+  return { e1rm, prevBest, all, render };
 })();
 
 /* ─────────────────────────────────────────────
@@ -731,7 +868,8 @@ const ConstanciaModule = (() => {
 
       barsEl.appendChild(bar);
     });
-    
+
+    RecordsModule.render();
   }
 
   return { render };
@@ -837,12 +975,6 @@ document.addEventListener('DOMContentLoaded', () => {
   FirebaseModule.init();
   bindEvents(); NavModule.init();
   renderAll();
-  setTimeout(() => {
-    const splash = document.getElementById('splash');
-    splash.classList.add('hidden');
-    document.getElementById('app').style.display = 'flex';
-    setTimeout(() => { splash.style.display = 'none'; }, 500);
-  }, 1600);
 });
 
 // Registro del Service Worker (antes no se registraba: la PWA y el modo offline nunca funcionaban)
