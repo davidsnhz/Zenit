@@ -201,6 +201,7 @@ svg { flex-shrink: 0; }
 .stacked-input { width: 100%; background: var(--surface2); border: 1px solid var(--border); padding: 13px 14px; border-radius: var(--radius-ctl); color: var(--text-pri); font-size: 14px; font-weight: 400; outline: none; margin-bottom: 12px; }
 .stacked-input::placeholder { color: var(--text-sec); font-weight: 400; }
 .stacked-input:focus { border-color: var(--pri); }
+.field-label { display: block; font-size: 12px; font-weight: 400; color: var(--text-sec); margin: 0 2px 6px; }
 /* El campo de fecha (fecha límite de la meta) se normaliza para igualar al de texto */
 .stacked-input[type="date"] { -webkit-appearance: none; appearance: none; height: 46px; }
 .stacked-input[type="date"]::-webkit-date-and-time-value { text-align: left; margin: 0; }
@@ -525,6 +526,7 @@ svg { flex-shrink: 0; }
       <div class="card">
         <div class="section-title">Nueva meta</div>
         <input type="text" class="stacked-input" id="goal-input" placeholder="Ej. sacarme el carnet de conducir…"/>
+        <label class="field-label" for="goal-date-input">Fecha límite de la meta (opcional)</label>
         <input type="date" class="stacked-input" id="goal-date-input"/>
         <button id="goal-add-btn" class="btn-primary-large" style="margin-bottom: 16px;">Añadir meta</button>
         <div id="goals-list" class="active-items-list" style="margin-top:0;"></div>
