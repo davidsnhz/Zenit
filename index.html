@@ -53,6 +53,7 @@
    TOKENS & RESET  (minimalista)
    ============================================================ */
 :root {
+  color-scheme: dark;
   --bg: #0a0a0a;
   --surface: #141414;
   --surface2: #171717;
@@ -74,6 +75,7 @@
   --shadow: 0 10px 30px rgba(0,0,0,.35);
 }
 [data-theme="light"] {
+  color-scheme: light;
   --bg: #ffffff;
   --surface: #ffffff;
   --surface2: #f5f5f5;
@@ -199,6 +201,10 @@ svg { flex-shrink: 0; }
 .stacked-input { width: 100%; background: var(--surface2); border: 1px solid var(--border); padding: 13px 14px; border-radius: var(--radius-ctl); color: var(--text-pri); font-size: 14px; font-weight: 400; outline: none; margin-bottom: 12px; }
 .stacked-input::placeholder { color: var(--text-sec); font-weight: 400; }
 .stacked-input:focus { border-color: var(--pri); }
+/* El campo de fecha (fecha límite de la meta) se normaliza para igualar al de texto */
+.stacked-input[type="date"] { -webkit-appearance: none; appearance: none; height: 46px; }
+.stacked-input[type="date"]::-webkit-date-and-time-value { text-align: left; margin: 0; }
+.stacked-input[type="date"]::-webkit-calendar-picker-indicator { opacity: .6; }
 .btn-square-add { width: 46px; height: 46px; flex-shrink: 0; background: var(--pri); border-radius: var(--radius-ctl); color: white; display: flex; align-items: center; justify-content: center; transition: opacity 0.2s ease; }
 .btn-square-add:active { opacity: 0.85; }
 .card-hint { font-size: 12px; color: var(--text-sec); font-weight: 400; }
