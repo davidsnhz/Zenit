@@ -854,6 +854,68 @@ const LifetimeModule = (() => {
 })();
 
 /* ─────────────────────────────────────────────
+   MUSCLE MAP MODULE (mapa de calor muscular)
+   ───────────────────────────────────────────── */
+const MuscleMapModule = (() => {
+  const WINDOW_DAYS = 30;
+  // Formas de cada grupo muscular sobre la silueta (viewBox 130x240)
+  const HEAD = '<circle cx="65" cy="18" r="12"/><rect x="60" y="30" width="10" height="8"/>';
+  const FRONT = [
+    { m: 'Hombros', svg: '<ellipse cx="40" cy="52" rx="12" ry="9"/><ellipse cx="90" cy="52" rx="12" ry="9"/>' },
+    { m: 'Pecho', svg: '<ellipse cx="54" cy="63" rx="12" ry="10"/><ellipse cx="76" cy="63" rx="12" ry="10"/>' },
+    { m: 'Bíceps', svg: '<ellipse cx="30" cy="80" rx="8" ry="16"/><ellipse cx="100" cy="80" rx="8" ry="16"/>' },
+    { m: 'Antebrazo', svg: '<ellipse cx="26" cy="110" rx="7" ry="15"/><ellipse cx="104" cy="110" rx="7" ry="15"/>' },
+    { m: 'Core', svg: '<rect x="55" y="76" width="20" height="34" rx="6"/>' },
+    { m: 'Piernas', svg: '<ellipse cx="53" cy="150" rx="11" ry="28"/><ellipse cx="77" cy="150" rx="11" ry="28"/><ellipse cx="53" cy="200" rx="8" ry="20"/><ellipse cx="77" cy="200" rx="8" ry="20"/>' }
+  ];
+  const BACK = [
+    { m: 'Hombros', svg: '<ellipse cx="40" cy="52" rx="12" ry="9"/><ellipse cx="90" cy="52" rx="12" ry="9"/>' },
+    { m: 'Espalda', svg: '<path d="M50 44 H80 L74 58 H56 Z"/><path d="M52 60 Q46 82 56 100 L64 100 V60 Z"/><path d="M78 60 Q84 82 74 100 L66 100 V60 Z"/><rect x="57" y="100" width="16" height="18" rx="5"/>' },
+    { m: 'Tríceps', svg: '<ellipse cx="30" cy="80" rx="8" ry="16"/><ellipse cx="100" cy="80" rx="8" ry="16"/>' },
+    { m: 'Glúteos', svg: '<ellipse cx="55" cy="130" rx="12" ry="12"/><ellipse cx="75" cy="130" rx="12" ry="12"/>' },
+    { m: 'Piernas', svg: '<ellipse cx="54" cy="165" rx="10" ry="24"/><ellipse cx="76" cy="165" rx="10" ry="24"/><ellipse cx="53" cy="202" rx="8" ry="20"/><ellipse cx="77" cy="202" rx="8" ry="20"/>' }
+  ];
+  function counts() {
+    const hist = StateModule.get().exerciseHistory || {};
+    const d = new Date(); d.setDate(d.getDate() - (WINDOW_DAYS - 1));
+    const cutoff = StreakModule.dateToStr(d);
+    const c = {};
+    for (const name in hist) {
+      const dbEx = EXERCISE_DB.find(x => x.name === name); const m = dbEx ? dbEx.muscle : null;
+      if (!m) continue;
+      const recent = (hist[name] || []).filter(e => e.date && e.date >= cutoff).length;
+      if (recent) c[m] = (c[m] || 0) + recent;
+    }
+    return c;
+  }
+  function figure(shapes, intensity) {
+    const base = `<g fill="var(--surface2)">${HEAD}${shapes.map(s => s.svg).join('')}</g>`;
+    const over = shapes.map(s => { const op = intensity[s.m] || 0; return op > 0 ? `<g fill="var(--pri)" fill-opacity="${op.toFixed(2)}">${s.svg}</g>` : ''; }).join('');
+    return `<svg viewBox="0 0 130 240" width="118" height="218">${base}${over}</svg>`;
+  }
+  function render() {
+    const body = document.getElementById('musclemap-body'); if (!body) return;
+    const c = counts();
+    const max = Math.max(1, ...Object.values(c));
+    const intensity = {}; Object.keys(c).forEach(m => { intensity[m] = 0.25 + 0.75 * (c[m] / max); });
+    // Resumen
+    let top = '', topN = 0; Object.keys(c).forEach(m => { if (c[m] > topN) { topN = c[m]; top = m; } });
+    const major = ['Piernas', 'Espalda', 'Pecho', 'Hombros', 'Glúteos'];
+    const neglected = major.find(m => !c[m]);
+    const hasData = Object.keys(c).length > 0;
+    body.innerHTML =
+      `<div class="mm-bodies"><div class="mm-fig">${figure(FRONT, intensity)}<div class="mm-fig-lbl">Frente</div></div><div class="mm-fig">${figure(BACK, intensity)}<div class="mm-fig-lbl">Espalda</div></div></div>` +
+      `<div class="mm-legend"><span>Menos</span><span class="mm-bar"></span><span>Más</span></div>` +
+      (hasData
+        ? `<div class="mm-summary"><div class="mm-chip"><span class="k">Más entrenado</span><span class="v hot">${escHtml(top)} · ${topN} ${topN === 1 ? 'sesión' : 'sesiones'}</span></div>` +
+          (neglected ? `<div class="mm-chip"><span class="k">Descuidado</span><span class="v">${escHtml(neglected)} · 0 sesiones</span></div>` : '') +
+          `</div><div class="mm-note">Últimos ${WINDOW_DAYS} días</div>`
+        : `<div class="mm-note">Sin entrenamientos aún. Finaliza entrenos con peso y el mapa se irá iluminando.</div>`);
+  }
+  return { render };
+})();
+
+/* ─────────────────────────────────────────────
    CONSTANCIA MODULE (HEATMAP ACTUALIZADO)
    ───────────────────────────────────────────── */
 const ConstanciaModule = (() => {
@@ -985,6 +1047,7 @@ const ConstanciaModule = (() => {
       barsEl.appendChild(bar);
     });
 
+    MuscleMapModule.render();
     LifetimeModule.render();
     RecordsModule.render();
   }

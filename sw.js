@@ -1,7 +1,7 @@
 /* ============================================================
-   ZENIT – Service Worker v21
+   ZENIT – Service Worker v22
    ============================================================ */
-const CACHE_NAME = 'zenit-v21';
+const CACHE_NAME = 'zenit-v22';
 const CORE_ASSETS = [
   '/', '/index.html', '/app.js', '/manifest.json',
   '/logoblanco.png', '/logo peque.png',

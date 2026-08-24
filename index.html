@@ -294,6 +294,19 @@ svg { flex-shrink: 0; }
 .lt-star { margin-top: 12px; font-size: 13px; color: var(--text-sec); line-height: 1.4; }
 .lt-star b { color: var(--text-pri); font-weight: 600; }
 
+/* Mapa muscular */
+.mm-bodies { display: flex; justify-content: center; gap: 14px; }
+.mm-fig { text-align: center; }
+.mm-fig-lbl { font-size: 11px; color: var(--text-sec); font-weight: 500; margin-top: 4px; }
+.mm-legend { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 14px; font-size: 11px; color: var(--text-sec); }
+.mm-bar { height: 8px; width: 120px; border-radius: 6px; background: linear-gradient(90deg, var(--surface2), rgba(255,91,0,.45), var(--pri)); }
+.mm-summary { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+.mm-chip { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--surface2); border-radius: 12px; padding: 11px 14px; font-size: 13px; }
+.mm-chip .k { color: var(--text-sec); }
+.mm-chip .v { font-weight: 700; color: var(--text-pri); text-align: right; }
+.mm-chip .v.hot { color: var(--pri); }
+.mm-note { text-align: center; font-size: 11px; color: var(--text-sec); margin-top: 10px; line-height: 1.4; }
+
 /* ============================================================
    SIDEBAR
    ============================================================ */
@@ -618,6 +631,11 @@ svg { flex-shrink: 0; }
         <div class="section-title" style="margin-bottom:8px;">Últimos meses</div>
         <div class="ms-num" id="ms-checkins">0 entrenamientos</div>
         <div class="ms-bars" id="ms-bars"></div>
+      </div>
+
+      <div class="card">
+        <div class="section-title" style="margin-bottom:12px;">Mapa muscular</div>
+        <div id="musclemap-body"></div>
       </div>
 
       <div class="card">
