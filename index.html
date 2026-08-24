@@ -295,8 +295,9 @@ svg { flex-shrink: 0; }
 .lt-star b { color: var(--text-pri); font-weight: 600; }
 
 /* Mapa muscular */
-.mm-bodies { display: flex; justify-content: center; gap: 14px; }
-.mm-fig { text-align: center; }
+.mm-bodies { display: flex; justify-content: center; gap: 10px; }
+.mm-fig { flex: 1 1 0; min-width: 0; max-width: 155px; text-align: center; }
+.mm-fig svg { width: 100%; height: auto; }
 .mm-fig-lbl { font-size: 11px; color: var(--text-sec); font-weight: 500; margin-top: 4px; }
 .mm-legend { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 14px; font-size: 11px; color: var(--text-sec); }
 .mm-bar { height: 8px; width: 120px; border-radius: 6px; background: linear-gradient(90deg, var(--surface2), rgba(255,91,0,.45), var(--pri)); }
