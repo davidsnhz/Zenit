@@ -399,6 +399,26 @@ svg { flex-shrink: 0; }
 .volume-bar { background: var(--bg); border-top: 1px solid var(--border); padding: 16px 20px calc(16px + env(safe-area-inset-bottom, 0px)); display: flex; align-items: center; gap: 8px; position: sticky; bottom: 0; }
 .vol-label { font-size: 13px; color: var(--text-sec); font-weight: 400; flex: 1; }
 .vol-value { font-size: 18px; font-weight: 600; color: var(--pri); }
+
+/* Progreso por ejercicio */
+#exercise-progress { position: fixed; inset: 0; z-index: 300; background: var(--bg); overflow-y: auto; display: none; flex-direction: column; transform: translateX(100%); transition: transform .35s cubic-bezier(.4,0,.2,1); padding-bottom: calc(40px + env(safe-area-inset-bottom, 0px)); }
+#exercise-progress.open { display: flex; transform: none; }
+.progress-head { padding: 0 20px 4px; }
+.progress-title { font-size: 24px; font-weight: 700; letter-spacing: -0.3px; color: var(--text-pri); }
+.progress-muscle { font-size: 13px; color: var(--text-sec); font-weight: 400; margin-top: 2px; }
+#progress-seg { margin: 16px 20px 0; }
+#progress-seg .toggle-btn { flex: 1; text-align: center; }
+.progress-big { display: flex; align-items: flex-end; gap: 8px; padding: 18px 20px 0; }
+.progress-big #progress-value { font-size: 40px; font-weight: 700; letter-spacing: -1px; line-height: .9; color: var(--text-pri); font-variant-numeric: tabular-nums; }
+.progress-unit { font-size: 16px; color: var(--text-sec); font-weight: 600; margin-bottom: 4px; }
+.progress-badge { font-size: 11px; font-weight: 700; color: var(--pri); background: var(--pri-dim); border-radius: 20px; padding: 3px 10px; margin-bottom: 7px; display: none; }
+.progress-sub { padding: 5px 20px 0; font-size: 12px; color: var(--text-sec); }
+.progress-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 0 20px; margin-top: 8px; }
+.progress-stats:empty { display: none; }
+.pstat { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
+.pstat-l { font-size: 10px; color: var(--text-sec); font-weight: 600; text-transform: uppercase; letter-spacing: .3px; }
+.pstat-v { font-size: 17px; font-weight: 700; margin-top: 4px; color: var(--text-pri); font-variant-numeric: tabular-nums; }
+.rec-item { cursor: pointer; }
 #exercise-sheet-overlay { position: fixed; inset: 0; z-index: 400; background: rgba(0,0,0,.6); backdrop-filter: blur(4px); display: none; animation: overlayIn .25s ease; }
 #exercise-sheet-overlay.open { display: block; }
 #exercise-sheet { position: fixed; bottom: 0; left: 0; right: 0; z-index: 401; background: var(--surface); border-radius: 24px 24px 0 0; max-height: 85dvh; display: flex; flex-direction: column; transform: translateY(100%); transition: transform .35s cubic-bezier(.4,0,.2,1); }
@@ -691,6 +711,24 @@ svg { flex-shrink: 0; }
   <div id="exercise-list" style="flex:1;overflow-y:auto;padding:8px 0"></div>
   <button class="add-exercise-btn" id="add-exercise-btn"><svg width="18" height="18" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>Añadir ejercicio</button>
   <div class="volume-bar"><span class="vol-label">Volumen total</span><span class="vol-value" id="vol-value">0 kg</span></div>
+</div>
+
+<div id="exercise-progress">
+  <div class="editor-topbar">
+    <button class="icon-btn" id="progress-back" aria-label="Volver"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M15 18l-6-6 6-6" stroke="var(--text-pri)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  </div>
+  <div class="progress-head">
+    <h2 class="progress-title" id="progress-title">Ejercicio</h2>
+    <div class="progress-muscle" id="progress-muscle"></div>
+  </div>
+  <div class="view-toggle" id="progress-seg">
+    <button class="toggle-btn active" data-metric="weight">Peso máx</button>
+    <button class="toggle-btn" data-metric="e1rm">1RM est.</button>
+  </div>
+  <div class="progress-big"><span id="progress-value">--</span><span class="progress-unit" id="progress-unit">kg</span><span class="progress-badge" id="progress-badge">récord</span></div>
+  <div class="progress-sub" id="progress-sub"></div>
+  <div class="card"><div class="section-title" style="margin-bottom:10px;">Evolución</div><div id="progress-chart"></div></div>
+  <div class="progress-stats" id="progress-stats"></div>
 </div>
 
 <div id="exercise-sheet-overlay"></div>

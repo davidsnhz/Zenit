@@ -622,7 +622,7 @@ const RoutineModule = (() => {
       const dbEx = EXERCISE_DB.find(x => x.name === ex.name); const muscle = dbEx ? dbEx.muscle : '';
       const sets = ex.sets.map((set, si) => `
         <div class="set-row ${set.done ? 'done' : ''}"><div class="set-num">${si + 1}</div><input class="set-input" type="number" inputmode="decimal" value="${set.weight}" data-field="weight" data-ei="${ei}" data-si="${si}"/><input class="set-input" type="number" inputmode="numeric" value="${set.reps}" data-field="reps" data-ei="${ei}" data-si="${si}"/><div class="set-check ${set.done ? 'done' : ''}" data-ei="${ei}" data-si="${si}"><svg width="15" height="15" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="set-del" data-ei="${ei}" data-si="${si}"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="var(--text-sec)" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>`).join('');
-      return `<div class="exercise-card"><div class="exercise-header"><div class="ex-info"><div class="ex-name">${escHtml(ex.name)}</div>${muscle ? `<div class="ex-muscle">${escHtml(muscle)}</div>` : ''}</div><div class="ex-actions"><button class="ex-action-btn danger" data-del-ex="${ei}"><svg width="14" height="14" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="var(--danger)" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div></div><div class="ex-history">${lastStr}</div><div class="sets-header"><span>Serie</span><span>${unit}</span><span>Reps</span><span></span><span></span></div>${sets}<button class="add-set-btn" data-ei="${ei}"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg> Añadir serie</button></div>`;
+      return `<div class="exercise-card"><div class="exercise-header"><div class="ex-info"><div class="ex-name">${escHtml(ex.name)}</div>${muscle ? `<div class="ex-muscle">${escHtml(muscle)}</div>` : ''}</div><div class="ex-actions"><button class="ex-action-btn" data-progress="${escHtml(ex.name)}"><svg width="15" height="15" viewBox="0 0 24 24"><path d="M4 4v16h16M8 14l3-3 2 2 4-5" stroke="var(--text-sec)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button><button class="ex-action-btn danger" data-del-ex="${ei}"><svg width="14" height="14" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="var(--danger)" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div></div><div class="ex-history">${lastStr}</div><div class="sets-header"><span>Serie</span><span>${unit}</span><span>Reps</span><span></span><span></span></div>${sets}<button class="add-set-btn" data-ei="${ei}"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg> Añadir serie</button></div>`;
     }).join('');
     bindEditorEvents(); updateVolume();
   }
@@ -632,6 +632,7 @@ const RoutineModule = (() => {
     list.querySelectorAll('.set-check').forEach(el => { el.addEventListener('click', () => { const ei = +el.dataset.ei, si = +el.dataset.si; const item = getCurrentItem(); const set = item.exercises[ei].sets[si]; set.done = !set.done; StateModule.save(); renderExercises(item.exercises); if (set.done) { haptic(); startRestTimer(); } }); });
     list.querySelectorAll('.set-del').forEach(el => { el.addEventListener('click', () => { const ei = +el.dataset.ei, si = +el.dataset.si; const item = getCurrentItem(); item.exercises[ei].sets.splice(si, 1); StateModule.save(); renderExercises(item.exercises); }); });
     list.querySelectorAll('.add-set-btn').forEach(btn => { btn.addEventListener('click', () => { const ei = +btn.dataset.ei; const item = getCurrentItem(); const lastSet = item.exercises[ei].sets.slice(-1)[0]; item.exercises[ei].sets.push({ weight: lastSet ? lastSet.weight : 0, reps: lastSet ? lastSet.reps : 10, rpe: lastSet ? lastSet.rpe : 8, done: false }); StateModule.save(); renderExercises(item.exercises); }); });
+    list.querySelectorAll('[data-progress]').forEach(btn => { btn.addEventListener('click', () => ProgressModule.open(btn.dataset.progress)); });
     list.querySelectorAll('[data-del-ex]').forEach(btn => { btn.addEventListener('click', () => { const ei = +btn.dataset.delEx; UIModule.confirm('¿Eliminar este ejercicio?', () => { const item = getCurrentItem(); item.exercises.splice(ei, 1); StateModule.save(); renderExercises(item.exercises); }); }); });
   }
   function updateVolume() { const item = getCurrentItem(); const s = StateModule.get(); let total = 0; item.exercises.forEach(ex => { ex.sets.forEach(set => { if (set.done) total += (set.weight || 0) * (set.reps || 0); }); }); document.getElementById('vol-value').textContent = `${total.toFixed(0)} ${s.settings.weightUnit}`; }
@@ -734,9 +735,74 @@ const RecordsModule = (() => {
     if (!recs.length) { list.innerHTML = '<div class="rec-empty">Aún no tienes récords. Completa series con peso al entrenar y se registrarán aquí.</div>'; return; }
     const unit = StateModule.get().settings.weightUnit || 'kg';
     const medal = '<svg viewBox="0 0 24 24" width="18" height="18" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0V4zM5 6H3v2a3 3 0 0 0 3 3M19 6h2v2a3 3 0 0 1-3 3"/></svg>';
-    list.innerHTML = recs.map(r => `<div class="rec-item"><div class="rec-medal">${medal}</div><div class="rec-info"><div class="rec-name">${escHtml(r.name)}</div><div class="rec-sub"><b>${r.weight} ${unit} × ${r.reps}</b> · 1RM ${r.e1rm} ${unit}</div></div><div class="rec-date">${r.date ? formatDate(r.date) : ''}</div></div>`).join('');
+    list.innerHTML = recs.map(r => `<div class="rec-item" data-progress="${escHtml(r.name)}"><div class="rec-medal">${medal}</div><div class="rec-info"><div class="rec-name">${escHtml(r.name)}</div><div class="rec-sub"><b>${r.weight} ${unit} × ${r.reps}</b> · 1RM ${r.e1rm} ${unit}</div></div><div class="rec-date">${r.date ? formatDate(r.date) : ''}</div></div>`).join('');
+    list.querySelectorAll('[data-progress]').forEach(el => el.addEventListener('click', () => ProgressModule.open(el.dataset.progress)));
   }
   return { e1rm, prevBest, all, render };
+})();
+
+/* ─────────────────────────────────────────────
+   PROGRESS MODULE (gráfica de progreso por ejercicio)
+   ───────────────────────────────────────────── */
+const ProgressModule = (() => {
+  let currentName = '', metric = 'weight';
+  function open(name) {
+    currentName = name; metric = 'weight';
+    setSegActive();
+    const el = document.getElementById('exercise-progress');
+    el.style.display = 'flex'; el.scrollTop = 0; requestAnimationFrame(() => el.classList.add('open'));
+    render();
+  }
+  function close() { const el = document.getElementById('exercise-progress'); el.classList.remove('open'); setTimeout(() => { el.style.display = 'none'; }, 350); }
+  function setMetric(m) { metric = m; setSegActive(); render(); }
+  function setSegActive() { document.querySelectorAll('#progress-seg .toggle-btn').forEach(b => b.classList.toggle('active', b.dataset.metric === metric)); }
+  function series() {
+    const hist = (StateModule.get().exerciseHistory || {})[currentName] || [];
+    return hist.filter(e => e.weight > 0).slice().sort((a, b) => (a.date || '').localeCompare(b.date || ''))
+      .map(e => ({ date: e.date, value: metric === 'e1rm' ? RecordsModule.e1rm(e.weight, e.reps) : e.weight, weight: e.weight, reps: e.reps }));
+  }
+  function render() {
+    const s = StateModule.get(); const unit = s.settings.weightUnit || 'kg';
+    const dbEx = EXERCISE_DB.find(x => x.name === currentName);
+    document.getElementById('progress-title').textContent = currentName;
+    document.getElementById('progress-muscle').textContent = dbEx ? dbEx.muscle : '';
+    document.getElementById('progress-unit').textContent = unit;
+    const data = series();
+    const valEl = document.getElementById('progress-value'), subEl = document.getElementById('progress-sub');
+    const badgeEl = document.getElementById('progress-badge'), chartEl = document.getElementById('progress-chart'), statsEl = document.getElementById('progress-stats');
+    if (!data.length) {
+      valEl.textContent = '--'; subEl.textContent = 'Sin datos aún. Completa series con peso en este ejercicio y finaliza el entreno.';
+      badgeEl.style.display = 'none'; chartEl.innerHTML = ''; statsEl.innerHTML = ''; return;
+    }
+    const values = data.map(d => d.value);
+    const last = data[data.length - 1], max = Math.max(...values), min = Math.min(...values);
+    const avg = Math.round(values.reduce((a, b) => a + b, 0) / values.length);
+    valEl.textContent = last.value;
+    subEl.textContent = `Última sesión: ${formatDate(last.date)}`;
+    const isRecord = last.value >= max && data.length > 1;
+    badgeEl.textContent = 'récord'; badgeEl.style.display = isRecord ? 'inline-block' : 'none';
+    chartEl.innerHTML = buildChart(data, min, max);
+    statsEl.innerHTML = `<div class="pstat"><div class="pstat-l">Mejor</div><div class="pstat-v">${max} ${unit}</div></div><div class="pstat"><div class="pstat-l">Media</div><div class="pstat-v">${avg} ${unit}</div></div><div class="pstat"><div class="pstat-l">Sesiones</div><div class="pstat-v">${data.length}</div></div>`;
+  }
+  function buildChart(data, min, max) {
+    const W = 320, H = 172, padL = 8, padR = 8, padT = 20, padB = 22;
+    const n = data.length; let lo = min, hi = max;
+    if (lo === hi) { lo = Math.max(0, lo - 5); hi = hi + 5; }
+    const plotW = W - padL - padR, plotH = H - padT - padB;
+    const x = i => n === 1 ? W / 2 : padL + (plotW * i / (n - 1));
+    const y = v => padT + plotH - ((v - lo) / (hi - lo)) * plotH;
+    const pts = data.map((d, i) => `${x(i).toFixed(1)},${y(d.value).toFixed(1)}`);
+    const grid = [0.25, 0.5, 0.75].map(f => { const gy = (padT + plotH * f).toFixed(1); return `<line x1="${padL}" y1="${gy}" x2="${W - padR}" y2="${gy}" stroke="var(--border)" stroke-width="1"/>`; }).join('');
+    const area = `M${pts[0]} ` + pts.slice(1).map(p => `L${p}`).join(' ') + ` L${x(n - 1).toFixed(1)},${(padT + plotH).toFixed(1)} L${x(0).toFixed(1)},${(padT + plotH).toFixed(1)} Z`;
+    const line = n > 1 ? `<path d="M${pts.join(' L')}" fill="none" stroke="var(--pri)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>` : '';
+    const maxIdx = data.reduce((mi, d, i, arr) => d.value > arr[mi].value ? i : mi, 0);
+    const dots = data.map((d, i) => { const m = i === maxIdx; return `<circle cx="${x(i).toFixed(1)}" cy="${y(d.value).toFixed(1)}" r="${m ? 5 : 3}" fill="var(--pri)" ${m ? 'stroke="var(--bg)" stroke-width="2"' : ''}/>`; }).join('');
+    const l1 = `<text x="${padL}" y="${H - 6}" font-size="9" fill="var(--text-sec)">${shortDate(data[0].date)}</text>`;
+    const l2 = n > 1 ? `<text x="${W - padR}" y="${H - 6}" text-anchor="end" font-size="9" fill="var(--text-sec)">${shortDate(data[n - 1].date)}</text>` : '';
+    return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="overflow:visible"><defs><linearGradient id="pgArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--pri)" stop-opacity=".33"/><stop offset="1" stop-color="var(--pri)" stop-opacity="0"/></linearGradient></defs>${grid}<path d="${area}" fill="url(#pgArea)"/>${line}${dots}${l1}${l2}</svg>`;
+  }
+  function shortDate(str) { if (!str) return ''; const p = String(str).split('-'); return `${p[2]}/${p[1]}`; }
+  return { open, close, setMetric };
 })();
 
 /* ─────────────────────────────────────────────
@@ -960,6 +1026,8 @@ function bindEvents() {
   document.getElementById('view-days').addEventListener('click', () => { document.getElementById('view-days').classList.add('active'); document.getElementById('view-groups').classList.remove('active'); document.getElementById('routine-days-view').style.display = 'block'; document.getElementById('routine-groups-view').style.display = 'none'; });
   document.getElementById('view-groups').addEventListener('click', () => { document.getElementById('view-groups').classList.add('active'); document.getElementById('view-days').classList.remove('active'); document.getElementById('routine-days-view').style.display = 'none'; document.getElementById('routine-groups-view').style.display = 'block'; });
   document.getElementById('editor-back').addEventListener('click', () => RoutineModule.closeEditor());
+  document.getElementById('progress-back').addEventListener('click', () => ProgressModule.close());
+  document.querySelectorAll('#progress-seg .toggle-btn').forEach(b => b.addEventListener('click', () => ProgressModule.setMetric(b.dataset.metric)));
   document.getElementById('save-routine-btn').addEventListener('click', () => RoutineModule.saveRoutine());
   document.getElementById('add-exercise-btn').addEventListener('click', () => ExerciseSheetModule.open());
   document.getElementById('exercise-sheet-overlay').addEventListener('click', () => ExerciseSheetModule.close());
