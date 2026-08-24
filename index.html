@@ -283,6 +283,17 @@ svg { flex-shrink: 0; }
 .rec-date { font-size: 11px; color: var(--text-sec); flex-shrink: 0; }
 .rec-empty { font-size: 13px; color: var(--text-sec); font-weight: 400; padding: 8px 0 2px; }
 
+/* Estadísticas de por vida */
+.lt-hero { background: linear-gradient(135deg, rgba(255,91,0,.16), rgba(255,169,0,.06)); border: 1px solid rgba(255,91,0,.3); border-radius: var(--radius-sm); padding: 18px; margin-bottom: 12px; }
+.lt-hero-v { font-size: 30px; font-weight: 700; letter-spacing: -0.5px; color: var(--text-pri); font-variant-numeric: tabular-nums; }
+.lt-hero-l { font-size: 13px; color: var(--text-sec); margin-top: 3px; }
+.lt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.lt-tile { background: var(--surface2); border-radius: var(--radius-sm); padding: 12px 14px; }
+.lt-v { font-size: 19px; font-weight: 700; color: var(--text-pri); font-variant-numeric: tabular-nums; }
+.lt-l { font-size: 11px; color: var(--text-sec); margin-top: 3px; }
+.lt-star { margin-top: 12px; font-size: 13px; color: var(--text-sec); line-height: 1.4; }
+.lt-star b { color: var(--text-pri); font-weight: 600; }
+
 /* ============================================================
    SIDEBAR
    ============================================================ */
@@ -607,6 +618,11 @@ svg { flex-shrink: 0; }
         <div class="section-title" style="margin-bottom:8px;">Últimos meses</div>
         <div class="ms-num" id="ms-checkins">0 entrenamientos</div>
         <div class="ms-bars" id="ms-bars"></div>
+      </div>
+
+      <div class="card">
+        <div class="section-title" style="margin-bottom:12px;">Estadísticas de por vida</div>
+        <div id="lifetime-body"></div>
       </div>
 
       <div class="card records-card">

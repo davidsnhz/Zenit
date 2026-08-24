@@ -137,6 +137,7 @@ function defaultState() {
     weeklyRoutine: DAYS.map(d => ({ day: d, exercises: [] })),
     muscleRoutine: [{ name: 'Grupo 1', exercises: [] }],
     goals: [], tasks: [], recentExercises: [], exerciseHistory: {},
+    stats: { totalVolume: 0, totalSets: 0, totalReps: 0 },
     settings: { theme: 'dark', restDuration: 90, haptics: true, weightUnit: 'kg', notifications: { enabled: false, time: '20:00' } }
   };
 }
@@ -639,6 +640,7 @@ const RoutineModule = (() => {
   function saveRoutine() {
     const item = getCurrentItem(); const s = StateModule.get(); const today = StreakModule.todayStr();
     const prs = [];
+    const st = s.stats || (s.stats = { totalVolume: 0, totalSets: 0, totalReps: 0 });
     item.exercises.forEach(ex => {
       const doneSets = ex.sets.filter(set => set.done);
       if (doneSets.length) {
@@ -649,6 +651,8 @@ const RoutineModule = (() => {
         const prev = RecordsModule.prevBest(ex.name);
         if (best.weight > 0 && prev > 0 && RecordsModule.e1rm(best.weight, best.reps) > prev) prs.push(ex.name);
         s.exerciseHistory[ex.name].push({ date: today, weight: best.weight, reps: best.reps });
+        // Acumulado de por vida (volumen, series y reps completadas)
+        doneSets.forEach(set => { st.totalSets++; st.totalReps += (set.reps || 0); st.totalVolume += (set.weight || 0) * (set.reps || 0); });
         if (!s.recentExercises.includes(ex.name)) { s.recentExercises.unshift(ex.name); if (s.recentExercises.length > 5) s.recentExercises.pop(); }
       }
     });
@@ -813,10 +817,47 @@ const ProgressModule = (() => {
 })();
 
 /* ─────────────────────────────────────────────
+   LIFETIME MODULE (estadísticas de por vida)
+   ───────────────────────────────────────────── */
+const LifetimeModule = (() => {
+  function fmtNum(n) { return Math.round(n).toLocaleString('es-ES'); }
+  function fmtBig(n) {
+    if (n >= 1000000) return (n / 1000000).toFixed(2).replace('.', ',') + ' M';
+    if (n >= 1000) return (n / 1000).toFixed(1).replace('.', ',') + ' k';
+    return String(Math.round(n));
+  }
+  function render() {
+    const body = document.getElementById('lifetime-body'); if (!body) return;
+    const s = StateModule.get();
+    const unit = s.settings.weightUnit || 'kg';
+    const st = s.stats || { totalVolume: 0, totalSets: 0, totalReps: 0 };
+    const totalWorkouts = s.gymDays.length;
+    const activeDays = new Set([...s.gymDays, ...s.restDays]).size;
+    const avgVol = totalWorkouts ? st.totalVolume / totalWorkouts : 0;
+    // Ejercicio estrella: el que más sesiones tiene en el historial
+    let star = '', starCount = 0; const hist = s.exerciseHistory || {};
+    for (const name in hist) { const c = (hist[name] || []).length; if (c > starCount) { starCount = c; star = name; } }
+    const tiles = [
+      ['Entrenos totales', fmtNum(totalWorkouts)],
+      ['Días activos', fmtNum(activeDays)],
+      ['Series completadas', fmtNum(st.totalSets)],
+      ['Repeticiones', fmtNum(st.totalReps)],
+      ['Racha máxima', (s.maxStreak || 0) + ' d'],
+      ['Vol. medio/entreno', fmtBig(avgVol) + ' ' + unit]
+    ];
+    body.innerHTML =
+      `<div class="lt-hero"><div class="lt-hero-v">${fmtBig(st.totalVolume)} ${unit}</div><div class="lt-hero-l">Peso total levantado 💪</div></div>` +
+      `<div class="lt-grid">` + tiles.map(t => `<div class="lt-tile"><div class="lt-v">${t[1]}</div><div class="lt-l">${t[0]}</div></div>`).join('') + `</div>` +
+      (starCount ? `<div class="lt-star">🏅 Ejercicio estrella: <b>${escHtml(star)}</b> · ${starCount} ${starCount === 1 ? 'sesión' : 'sesiones'}</div>` : '');
+  }
+  return { render };
+})();
+
+/* ─────────────────────────────────────────────
    CONSTANCIA MODULE (HEATMAP ACTUALIZADO)
    ───────────────────────────────────────────── */
 const ConstanciaModule = (() => {
-  const WEEKS = 25; 
+  const WEEKS = 25;
   
   function startOfWeek(d) {
     const date = new Date(d); date.setHours(0, 0, 0, 0);
@@ -944,6 +985,7 @@ const ConstanciaModule = (() => {
       barsEl.appendChild(bar);
     });
 
+    LifetimeModule.render();
     RecordsModule.render();
   }
 
