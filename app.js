@@ -858,23 +858,25 @@ const LifetimeModule = (() => {
    ───────────────────────────────────────────── */
 const MuscleMapModule = (() => {
   const WINDOW_DAYS = 30;
-  // Formas de cada grupo muscular sobre la silueta (viewBox 130x252)
-  const HEAD = '<circle cx="65" cy="20" r="13"/><rect x="59" y="32" width="12" height="8" rx="2"/>';
+  let tipTimer = null;
+  // Cuerpo base sólido (silueta) sobre el que se pintan los músculos. viewBox 120x250.
+  const BODY = '<circle cx="60" cy="19" r="13"/><rect x="56" y="30" width="8" height="8" rx="2"/><path d="M41 41 Q60 37 79 41 L75 112 Q60 116 45 112 Z"/><rect x="27" y="44" width="12" height="74" rx="6"/><rect x="81" y="44" width="12" height="74" rx="6"/><path d="M45 110 H75 V126 H45 Z"/><rect x="45" y="124" width="13" height="122" rx="6"/><rect x="62" y="124" width="13" height="122" rx="6"/>';
+  // Formas anatómicas por grupo muscular
   const FRONT = [
-    { m: 'Hombros', svg: '<ellipse cx="38" cy="52" rx="13" ry="11"/><ellipse cx="92" cy="52" rx="13" ry="11"/>' },
-    { m: 'Pecho', svg: '<path d="M64 57 q-15 -2 -17 8 q-1 9 9 11 q8 1 8 -6 z"/><path d="M66 57 q15 -2 17 8 q1 9 -9 11 q-8 1 -8 -6 z"/>' },
-    { m: 'Bíceps', svg: '<ellipse cx="29" cy="84" rx="8" ry="17"/><ellipse cx="101" cy="84" rx="8" ry="17"/>' },
-    { m: 'Antebrazo', svg: '<ellipse cx="24" cy="115" rx="7" ry="16"/><ellipse cx="106" cy="115" rx="7" ry="16"/>' },
-    { m: 'Core', svg: '<rect x="56" y="80" width="8" height="8" rx="2"/><rect x="66" y="80" width="8" height="8" rx="2"/><rect x="56" y="90" width="8" height="8" rx="2"/><rect x="66" y="90" width="8" height="8" rx="2"/><rect x="56" y="100" width="8" height="8" rx="2"/><rect x="66" y="100" width="8" height="8" rx="2"/>' },
-    { m: 'Piernas', svg: '<ellipse cx="51" cy="158" rx="7" ry="30"/><ellipse cx="60" cy="156" rx="6" ry="28"/><ellipse cx="70" cy="156" rx="6" ry="28"/><ellipse cx="79" cy="158" rx="7" ry="30"/><ellipse cx="54" cy="212" rx="8" ry="22"/><ellipse cx="76" cy="212" rx="8" ry="22"/>' }
+    { m: 'Hombros', svg: '<path d="M50 40 Q60 38 70 40 L66 47 Q60 45 54 47 Z"/><path d="M40 44 Q31 46 30 57 Q37 60 44 55 Z"/><path d="M80 44 Q89 46 90 57 Q83 60 76 55 Z"/>' },
+    { m: 'Pecho', svg: '<path d="M59 55 V72 Q47 71 46 62 Q46 54 59 55 Z"/><path d="M61 55 V72 Q73 71 74 62 Q74 54 61 55 Z"/>' },
+    { m: 'Bíceps', svg: '<path d="M30 63 Q35 64 35 78 Q35 88 30 88 Q26 86 27 74 Z"/><path d="M90 63 Q85 64 85 78 Q85 88 90 88 Q94 86 93 74 Z"/>' },
+    { m: 'Antebrazo', svg: '<path d="M30 92 Q34 93 33 108 L30 114 Q27 104 28 94 Z"/><path d="M90 92 Q86 93 87 108 L90 114 Q93 104 92 94 Z"/>' },
+    { m: 'Core', svg: '<rect x="53" y="76" width="6" height="7" rx="1.5"/><rect x="61" y="76" width="6" height="7" rx="1.5"/><rect x="53" y="85" width="6" height="7" rx="1.5"/><rect x="61" y="85" width="6" height="7" rx="1.5"/><rect x="53" y="94" width="6" height="7" rx="1.5"/><rect x="61" y="94" width="6" height="7" rx="1.5"/><path d="M50 78 Q47 90 51 104 L54 103 Q50 90 52 79 Z"/><path d="M70 78 Q73 90 69 104 L66 103 Q70 90 68 79 Z"/>' },
+    { m: 'Piernas', svg: '<path d="M47 128 Q52 128 52 158 Q51 182 47 184 Q43 182 43 158 Z"/><path d="M54 130 Q57 132 57 158 L55 178 Q53 160 53 132 Z"/><path d="M66 130 Q63 132 63 158 L65 178 Q67 160 67 132 Z"/><path d="M73 128 Q68 128 68 158 Q69 182 73 184 Q77 182 77 158 Z"/><ellipse cx="50" cy="212" rx="5" ry="20"/><ellipse cx="70" cy="212" rx="5" ry="20"/>' }
   ];
   const BACK = [
-    { m: 'Hombros', svg: '<ellipse cx="38" cy="52" rx="13" ry="11"/><ellipse cx="92" cy="52" rx="13" ry="11"/>' },
-    { m: 'Espalda', svg: '<path d="M48 42 H82 L74 60 H56 Z"/><path d="M53 62 Q45 84 57 104 L65 104 V62 Z"/><path d="M77 62 Q85 84 73 104 L65 104 V62 Z"/><rect x="57" y="104" width="7" height="18" rx="3"/><rect x="66" y="104" width="7" height="18" rx="3"/>' },
-    { m: 'Tríceps', svg: '<ellipse cx="29" cy="84" rx="8" ry="17"/><ellipse cx="101" cy="84" rx="8" ry="17"/>' },
-    { m: 'Antebrazo', svg: '<ellipse cx="24" cy="115" rx="7" ry="16"/><ellipse cx="106" cy="115" rx="7" ry="16"/>' },
-    { m: 'Glúteos', svg: '<ellipse cx="55" cy="134" rx="13" ry="13"/><ellipse cx="75" cy="134" rx="13" ry="13"/>' },
-    { m: 'Piernas', svg: '<ellipse cx="51" cy="174" rx="7" ry="26"/><ellipse cx="60" cy="174" rx="6" ry="25"/><ellipse cx="70" cy="174" rx="6" ry="25"/><ellipse cx="79" cy="174" rx="7" ry="26"/><ellipse cx="54" cy="216" rx="8" ry="22"/><ellipse cx="76" cy="216" rx="8" ry="22"/>' }
+    { m: 'Hombros', svg: '<path d="M40 44 Q31 46 30 57 Q37 60 44 55 Z"/><path d="M80 44 Q89 46 90 57 Q83 60 76 55 Z"/>' },
+    { m: 'Espalda', svg: '<path d="M46 40 Q60 37 74 40 L68 62 Q60 59 52 62 Z"/><path d="M52 63 Q44 84 56 104 L59 103 Q50 84 55 64 Z"/><path d="M68 63 Q76 84 64 104 L61 103 Q70 84 65 64 Z"/><rect x="54" y="96" width="5" height="14" rx="2"/><rect x="61" y="96" width="5" height="14" rx="2"/>' },
+    { m: 'Tríceps', svg: '<path d="M30 63 Q35 64 35 80 Q35 90 30 90 Q26 88 27 74 Z"/><path d="M90 63 Q85 64 85 80 Q85 90 90 90 Q94 88 93 74 Z"/>' },
+    { m: 'Antebrazo', svg: '<path d="M30 94 Q34 95 33 108 L30 114 Q27 104 28 96 Z"/><path d="M90 94 Q86 95 87 108 L90 114 Q93 104 92 96 Z"/>' },
+    { m: 'Glúteos', svg: '<path d="M46 116 Q46 132 58 132 Q60 124 59 117 Z"/><path d="M74 116 Q74 132 62 132 Q60 124 61 117 Z"/>' },
+    { m: 'Piernas', svg: '<path d="M47 134 Q52 134 52 160 L49 182 Q45 160 45 136 Z"/><path d="M54 136 Q57 138 57 160 L55 178 Q53 160 53 138 Z"/><path d="M66 136 Q63 138 63 160 L65 178 Q67 160 67 138 Z"/><path d="M73 134 Q68 134 68 160 L71 182 Q75 160 75 136 Z"/><ellipse cx="50" cy="210" rx="6" ry="20"/><ellipse cx="70" cy="210" rx="6" ry="20"/>' }
   ];
   function counts() {
     const hist = StateModule.get().exerciseHistory || {};
@@ -890,15 +892,15 @@ const MuscleMapModule = (() => {
     return c;
   }
   function figure(shapes, intensity) {
-    const base = `<g fill="var(--surface2)">${HEAD}${shapes.map(s => s.svg).join('')}</g>`;
-    const over = shapes.map(s => { const op = intensity[s.m] || 0; return op > 0 ? `<g fill="var(--pri)" fill-opacity="${op.toFixed(2)}">${s.svg}</g>` : ''; }).join('');
-    return `<svg viewBox="0 0 130 252" width="100%" style="height:auto;display:block">${base}${over}</svg>`;
+    const base = `<g fill="#2b2b2b">${BODY}</g>`;
+    const over = shapes.map(s => `<g class="mm-mus" data-muscle="${s.m}" fill="var(--pri)" fill-opacity="${(intensity[s.m] || 0).toFixed(2)}" pointer-events="all">${s.svg}</g>`).join('');
+    return `<svg viewBox="0 0 120 250" width="100%" style="height:auto;display:block">${base}${over}</svg>`;
   }
   function render() {
     const body = document.getElementById('musclemap-body'); if (!body) return;
     const c = counts();
     const max = Math.max(1, ...Object.values(c));
-    const intensity = {}; Object.keys(c).forEach(m => { intensity[m] = 0.25 + 0.75 * (c[m] / max); });
+    const intensity = {}; Object.keys(c).forEach(m => { intensity[m] = 0.28 + 0.72 * (c[m] / max); });
     // Resumen
     let top = '', topN = 0; Object.keys(c).forEach(m => { if (c[m] > topN) { topN = c[m]; top = m; } });
     const major = ['Piernas', 'Espalda', 'Pecho', 'Hombros', 'Glúteos'];
@@ -910,8 +912,14 @@ const MuscleMapModule = (() => {
       (hasData
         ? `<div class="mm-summary"><div class="mm-chip"><span class="k">Más entrenado</span><span class="v hot">${escHtml(top)} · ${topN} ${topN === 1 ? 'sesión' : 'sesiones'}</span></div>` +
           (neglected ? `<div class="mm-chip"><span class="k">Descuidado</span><span class="v">${escHtml(neglected)} · 0 sesiones</span></div>` : '') +
-          `</div><div class="mm-note">Últimos ${WINDOW_DAYS} días</div>`
-        : `<div class="mm-note">Sin entrenamientos aún. Finaliza entrenos con peso y el mapa se irá iluminando.</div>`);
+          `</div><div class="mm-note">Últimos ${WINDOW_DAYS} días · toca un músculo para ver sus datos</div>`
+        : `<div class="mm-note">Sin entrenamientos aún. Finaliza entrenos con peso y el mapa se irá iluminando. Toca un músculo para identificarlo.</div>`);
+    // Tocar un músculo muestra su nombre y sesiones
+    body.querySelectorAll('.mm-mus').forEach(g => g.addEventListener('click', () => {
+      const m = g.dataset.muscle, n = c[m] || 0;
+      TooltipModule.show(g, `${m} · ${n} ${n === 1 ? 'sesión' : 'sesiones'}`);
+      clearTimeout(tipTimer); tipTimer = setTimeout(() => TooltipModule.hide(), 2600);
+    }));
   }
   return { render };
 })();
