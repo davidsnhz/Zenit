@@ -892,9 +892,11 @@ const MuscleMapModule = (() => {
     return c;
   }
   function figure(shapes, intensity) {
-    const base = `<g fill="#2b2b2b">${BODY}</g>`;
-    const over = shapes.map(s => `<g class="mm-mus" data-muscle="${s.m}" fill="var(--pri)" fill-opacity="${(intensity[s.m] || 0).toFixed(2)}" pointer-events="all">${s.svg}</g>`).join('');
-    return `<svg viewBox="0 0 120 250" width="100%" style="height:auto;display:block">${base}${over}</svg>`;
+    // 1) silueta base · 2) TODOS los músculos en gris (se ven trabajados o no) · 3) naranja encima según intensidad
+    const bodyBase = `<g fill="#242424" pointer-events="none">${BODY}</g>`;
+    const musGray = shapes.map(s => `<g class="mm-mus" data-muscle="${s.m}" fill="#3a3a3a" pointer-events="all">${s.svg}</g>`).join('');
+    const over = shapes.map(s => { const op = intensity[s.m] || 0; return op > 0 ? `<g fill="var(--pri)" fill-opacity="${op.toFixed(2)}" pointer-events="none">${s.svg}</g>` : ''; }).join('');
+    return `<svg viewBox="0 0 120 250" width="100%" style="height:auto;display:block">${bodyBase}${musGray}${over}</svg>`;
   }
   function render() {
     const body = document.getElementById('musclemap-body'); if (!body) return;
