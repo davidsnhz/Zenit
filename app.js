@@ -940,13 +940,19 @@ function bindEvents() {
       document.getElementById('habit-input').value = ''; 
     }, 200);
   });
+  // Placeholder simulado del campo de fecha: se oculta cuando hay una fecha elegida
+  const goalDateInput = document.getElementById('goal-date-input');
+  const syncDatePh = () => goalDateInput.classList.toggle('has-value', !!goalDateInput.value);
+  goalDateInput.addEventListener('change', syncDatePh);
+  goalDateInput.addEventListener('input', syncDatePh);
+
   document.getElementById('goal-add-btn').addEventListener('click', function(e) {
     this.classList.add('anim-pop');
     setTimeout(() => {
       this.classList.remove('anim-pop');
-      GoalsModule.addGoal(document.getElementById('goal-input').value, document.getElementById('goal-date-input').value); 
-      document.getElementById('goal-input').value = ''; 
-      document.getElementById('goal-date-input').value = '';
+      GoalsModule.addGoal(document.getElementById('goal-input').value, goalDateInput.value);
+      document.getElementById('goal-input').value = '';
+      goalDateInput.value = ''; syncDatePh();
     }, 200);
   });
   
