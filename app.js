@@ -745,7 +745,7 @@ const RecordsModule = (() => {
    PROGRESS MODULE (gráfica de progreso por ejercicio)
    ───────────────────────────────────────────── */
 const ProgressModule = (() => {
-  let currentName = '', metric = 'weight';
+  let currentName = '', metric = 'weight', tipTimer = null;
   function open(name) {
     currentName = name; metric = 'weight';
     setSegActive();
@@ -781,7 +781,12 @@ const ProgressModule = (() => {
     subEl.textContent = `Última sesión: ${formatDate(last.date)}`;
     const isRecord = last.value >= max && data.length > 1;
     badgeEl.textContent = 'récord'; badgeEl.style.display = isRecord ? 'inline-block' : 'none';
-    chartEl.innerHTML = buildChart(data, min, max);
+    chartEl.innerHTML = buildChart(data, min, max) + '<div class="progress-hint">Toca un punto para ver su valor</div>';
+    chartEl.querySelectorAll('.pg-hit').forEach(c => c.addEventListener('click', () => {
+      const d = data[+c.dataset.pt];
+      TooltipModule.show(c, `${formatDate(d.date)} · ${d.value} ${unit}`);
+      clearTimeout(tipTimer); tipTimer = setTimeout(() => TooltipModule.hide(), 2800);
+    }));
     statsEl.innerHTML = `<div class="pstat"><div class="pstat-l">Mejor</div><div class="pstat-v">${max} ${unit}</div></div><div class="pstat"><div class="pstat-l">Media</div><div class="pstat-v">${avg} ${unit}</div></div><div class="pstat"><div class="pstat-l">Sesiones</div><div class="pstat-v">${data.length}</div></div>`;
   }
   function buildChart(data, min, max) {
@@ -799,7 +804,9 @@ const ProgressModule = (() => {
     const dots = data.map((d, i) => { const m = i === maxIdx; return `<circle cx="${x(i).toFixed(1)}" cy="${y(d.value).toFixed(1)}" r="${m ? 5 : 3}" fill="var(--pri)" ${m ? 'stroke="var(--bg)" stroke-width="2"' : ''}/>`; }).join('');
     const l1 = `<text x="${padL}" y="${H - 6}" font-size="9" fill="var(--text-sec)">${shortDate(data[0].date)}</text>`;
     const l2 = n > 1 ? `<text x="${W - padR}" y="${H - 6}" text-anchor="end" font-size="9" fill="var(--text-sec)">${shortDate(data[n - 1].date)}</text>` : '';
-    return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="overflow:visible"><defs><linearGradient id="pgArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--pri)" stop-opacity=".33"/><stop offset="1" stop-color="var(--pri)" stop-opacity="0"/></linearGradient></defs>${grid}<path d="${area}" fill="url(#pgArea)"/>${line}${dots}${l1}${l2}</svg>`;
+    // Zonas de toque (invisibles y más grandes) sobre cada punto, para tocarlas fácil
+    const hits = data.map((d, i) => `<circle class="pg-hit" data-pt="${i}" cx="${x(i).toFixed(1)}" cy="${y(d.value).toFixed(1)}" r="14" fill="transparent" style="cursor:pointer"/>`).join('');
+    return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="overflow:visible"><defs><linearGradient id="pgArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--pri)" stop-opacity=".33"/><stop offset="1" stop-color="var(--pri)" stop-opacity="0"/></linearGradient></defs>${grid}<path d="${area}" fill="url(#pgArea)"/>${line}${dots}${l1}${l2}${hits}</svg>`;
   }
   function shortDate(str) { if (!str) return ''; const p = String(str).split('-'); return `${p[2]}/${p[1]}`; }
   return { open, close, setMetric };
